@@ -1,9 +1,6 @@
 import { cookies } from 'next/headers'
 import { AUTH_BASE, createErrorResponse, createSuccessResponse } from '@/lib/auth-utils'
 
-/**
- * Decodifica un JWT y extrae la información de expiración
- */
 function decodeTokenExpiration(token: string): number | null {
   try {
     const payload = JSON.parse(atob(token.split('.')[1]))
@@ -13,9 +10,6 @@ function decodeTokenExpiration(token: string): number | null {
   }
 }
 
-/**
- * Valida el token con el microservicio y devuelve los datos del usuario
- */
 async function validateWithMicroservice(accessToken: string) {
   const response = await fetch(`${AUTH_BASE}/auth/me`, {
     method: 'GET',
@@ -38,9 +32,6 @@ async function validateWithMicroservice(accessToken: string) {
   }
 }
 
-/**
- * Valida el token localmente (fallback para desarrollo)
- */
 async function validateLocally(accessToken: string) {
   try {
     const jwt = require('jsonwebtoken')
@@ -65,7 +56,6 @@ export async function GET() {
       return createErrorResponse('No access token', 401, 'MISSING_TOKEN')
     }
 
-    // Si tenemos AUTH_BASE configurado, validamos con el microservicio
     if (AUTH_BASE) {
       try {
         const result = await validateWithMicroservice(accessToken)
@@ -75,7 +65,6 @@ export async function GET() {
       }
     }
 
-    // Fallback para desarrollo local sin microservicio
     try {
       const result = await validateLocally(accessToken)
       return createSuccessResponse(result)

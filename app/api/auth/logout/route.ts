@@ -3,7 +3,6 @@ import { AUTH_BASE, createErrorResponse, createSuccessResponse } from '@/lib/aut
 
 export async function POST(req: Request) {
   try {
-    // Extraer tokens de las cookies
     const header = req.headers.get('cookie') || ''
     const parsed = cookie.parse(header)
     const accessToken = parsed.access_token || parsed.token || ''
@@ -11,7 +10,6 @@ export async function POST(req: Request) {
 
     let microserviceResponse = { message: 'logged out' }
 
-    // Si AUTH_BASE está configurado, intentar invalidar tokens en el microservicio
     if (AUTH_BASE) {
       try {
         const response = await fetch(`${AUTH_BASE}/auth/logout`, {
@@ -26,12 +24,10 @@ export async function POST(req: Request) {
         const json = await response.json().catch(() => ({ message: response.statusText }))
         microserviceResponse = json || { message: 'logged out' }
       } catch (e: any) {
-        // Ignorar errores del microservicio pero incluir mensaje
         microserviceResponse = { message: e?.message || 'microservice error' }
       }
     }
 
-    // Limpiar cookies (access y refresh)
     const headers = new Headers({ 'Content-Type': 'application/json' })
     
     const clearAccess = cookie.serialize('access_token', '', {
