@@ -1,21 +1,20 @@
 import cookie from 'cookie'
-
-const AUTH_BASE = process.env.AUTH_BASE_URL || ''
+import { AUTH_BASE, createErrorResponse, createSuccessResponse } from '@/lib/auth-utils'
 
 export async function POST(req: Request) {
   try {
-    // Parse cookies to find access/refresh tokens
+    // Extraer tokens de las cookies
     const header = req.headers.get('cookie') || ''
-    const parsed = cookie.parse(header || '')
+    const parsed = cookie.parse(header)
     const accessToken = parsed.access_token || parsed.token || ''
     const refreshToken = parsed.refresh_token || ''
 
-    let msResponse: any = { message: 'logged out' }
+    let microserviceResponse = { message: 'logged out' }
 
-    // If AUTH_BASE configured, attempt to call microservice logout endpoint to revoke tokens
+    // Si AUTH_BASE está configurado, intentar invalidar tokens en el microservicio
     if (AUTH_BASE) {
       try {
-        const fetchRes = await fetch(`${AUTH_BASE}/auth/logout`, {
+        const response = await fetch(`${AUTH_BASE}/auth/logout`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -23,17 +22,18 @@ export async function POST(req: Request) {
           },
           body: JSON.stringify({ refresh_token: refreshToken })
         })
-        // try to parse response
-        const json = await fetchRes.json().catch(() => ({ message: fetchRes.statusText }))
-        msResponse = json || { message: 'logged out' }
+        
+        const json = await response.json().catch(() => ({ message: response.statusText }))
+        microserviceResponse = json || { message: 'logged out' }
       } catch (e: any) {
-        // ignore microservice errors but include message
-        msResponse = { message: e?.message || 'microservice error' }
+        // Ignorar errores del microservicio pero incluir mensaje
+        microserviceResponse = { message: e?.message || 'microservice error' }
       }
     }
 
-    // Clear cookies (access and refresh)
+    // Limpiar cookies (access y refresh)
     const headers = new Headers({ 'Content-Type': 'application/json' })
+    
     const clearAccess = cookie.serialize('access_token', '', {
       httpOnly: true,
       path: '/',
@@ -41,6 +41,7 @@ export async function POST(req: Request) {
       sameSite: 'lax',
       secure: process.env.NODE_ENV === 'production'
     })
+    
     const clearRefresh = cookie.serialize('refresh_token', '', {
       httpOnly: true,
       path: '/',
@@ -52,8 +53,16 @@ export async function POST(req: Request) {
     headers.append('Set-Cookie', clearAccess)
     headers.append('Set-Cookie', clearRefresh)
 
-    return new Response(JSON.stringify(msResponse), { status: 200, headers })
+    return new Response(JSON.stringify(microserviceResponse), { 
+      status: 200, 
+      headers 
+    })
+
   } catch (err: any) {
-    return new Response(JSON.stringify({ error: err?.message || 'Error logging out' }), { status: 500, headers: { 'Content-Type': 'application/json' } })
+    return createErrorResponse(
+      err?.message || 'Error logging out',
+      500,
+      'LOGOUT_ERROR'
+    )
   }
 }
