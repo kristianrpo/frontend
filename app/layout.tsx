@@ -5,8 +5,8 @@ import AuthProvider from './providers/AuthProvider'
 import Navbar from './components/Navbar'
 
 export const metadata: Metadata = {
-  title: 'Next Auth Starter',
-  description: 'Demo app with JWT auth stored in HttpOnly cookie'
+  title: 'Carpeta Ciudadana ',
+  description: 'Carpeta Ciudadana - Tu espacio digital seguro para gestionar, autenticar y compartir documentos oficiales'
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
