@@ -1,0 +1,19 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+html, body, #__next {
+  height: 100%;
+}
+
+body {
+  /* Use direct colors instead of @apply to avoid issues with unknown utilities during build */
+  background-color: #f8fafc; /* close to bg-gray-50 */
+  color: #111827; /* close to text-gray-900 */
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+}
+
+.container {
+  max-width: 720px;
+}
