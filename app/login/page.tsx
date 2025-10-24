@@ -68,11 +68,11 @@ export default function LoginPage() {
 
   return (
     <div className="max-w-md mx-auto bg-white p-6 rounded shadow">
-      <h2 className="text-xl font-semibold mb-4">Login</h2>
+      <h2 className="text-xl font-semibold mb-4">Iniciar Sesión</h2>
       <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-  <input required value={email} onChange={e => setEmail(e.target.value)} placeholder="email" className="border p-2 rounded" />
-  <input required value={password} onChange={e => setPassword(e.target.value)} type="password" placeholder="password" className="border p-2 rounded" />
-        <button disabled={loading} className="bg-blue-600 text-white px-4 py-2 rounded disabled:opacity-50">{loading ? 'Entrando...' : 'Login'}</button>
+  <input required value={email} onChange={e => setEmail(e.target.value)} placeholder="Correo electrónico" className="border p-2 rounded" />
+  <input required value={password} onChange={e => setPassword(e.target.value)} type="password" placeholder="Contraseña" className="border p-2 rounded" />
+        <button disabled={loading} className="bg-blue-600 text-white px-4 py-2 rounded disabled:opacity-50">{loading ? 'Entrando...' : 'Iniciar Sesión'}</button>
         {error && <div className="text-red-600">{error}</div>}
       </form>
     </div>

@@ -61,8 +61,8 @@ export function createSuccessResponse<T>(
  * Maneja errores de red y parsing
  */
 export function handleAuthError(err: any, endpoint: string): Response {
-  const errorMessage = err.message || 'Network or server error'
-  const details = `Failed to connect to ${AUTH_BASE}${endpoint}`
+  const errorMessage = err.message || 'Error de red o servidor'
+  const details = `Error al conectar con ${AUTH_BASE}${endpoint}`
   
   return createErrorResponse(
     errorMessage,
@@ -81,7 +81,7 @@ export function validateRegistrationFields(body: any): string | null {
   const missingFields = requiredFields.filter(field => !body[field])
   
   if (missingFields.length > 0) {
-    return `Missing required fields: ${missingFields.join(', ')}`
+    return `Campos requeridos faltantes: ${missingFields.join(', ')}`
   }
   
   return null
@@ -95,7 +95,7 @@ export function validateLoginFields(body: any): string | null {
   const missingFields = requiredFields.filter(field => !body[field])
   
   if (missingFields.length > 0) {
-    return `Missing required fields: ${missingFields.join(', ')}`
+    return `Campos requeridos faltantes: ${missingFields.join(', ')}`
   }
   
   return null
@@ -131,7 +131,7 @@ export async function makeAuthRequest(
  */
 export function extractErrorInfo(data: any, response: Response, endpoint: string): AuthError {
   return {
-    error: data?.error || data?.message || 'Request failed',
+    error: data?.error || data?.message || 'Solicitud fallida',
     code: data?.code || 'API_ERROR',
     details: data?.details || `HTTP ${response.status}: ${response.statusText}`,
     status: response.status,

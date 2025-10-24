@@ -58,13 +58,13 @@ export default function RegisterPage() {
 
   return (
     <div className="max-w-md mx-auto bg-white p-6 rounded shadow">
-      <h2 className="text-xl font-semibold mb-4">Register</h2>
+      <h2 className="text-xl font-semibold mb-4">Registro</h2>
       <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-  <input required value={email} onChange={e => setEmail(e.target.value)} placeholder="email" className="border p-2 rounded" />
-  <input required value={name} onChange={e => setName(e.target.value)} placeholder="full name" className="border p-2 rounded" />
-  <input value={idCitizen} onChange={e => setIdCitizen(e.target.value === '' ? '' : Number(e.target.value))} type="number" placeholder="id_citizen (number)" className="border p-2 rounded" />
-  <input required value={password} onChange={e => setPassword(e.target.value)} type="password" placeholder="password" className="border p-2 rounded" />
-        <button disabled={loading} className="bg-green-600 text-white px-4 py-2 rounded disabled:opacity-50">{loading ? 'Registrando...' : 'Register'}</button>
+  <input required value={email} onChange={e => setEmail(e.target.value)} placeholder="Correo electrónico" className="border p-2 rounded" />
+  <input required value={name} onChange={e => setName(e.target.value)} placeholder="Nombre completo" className="border p-2 rounded" />
+  <input value={idCitizen} onChange={e => setIdCitizen(e.target.value === '' ? '' : Number(e.target.value))} type="number" placeholder="ID Ciudadano (opcional)" className="border p-2 rounded" />
+  <input required value={password} onChange={e => setPassword(e.target.value)} type="password" placeholder="Contraseña" className="border p-2 rounded" />
+        <button disabled={loading} className="bg-green-600 text-white px-4 py-2 rounded disabled:opacity-50">{loading ? 'Registrando...' : 'Registrarse'}</button>
         {error && <div className="text-red-600">{error}</div>}
       </form>
     </div>
