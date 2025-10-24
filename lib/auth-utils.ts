@@ -77,7 +77,7 @@ export function handleAuthError(err: any, endpoint: string): Response {
  * Valida campos requeridos para registro
  */
 export function validateRegistrationFields(body: any): string | null {
-  const requiredFields = ['email', 'password', 'name']
+  const requiredFields = ['email', 'password', 'name', 'id_citizen']
   const missingFields = requiredFields.filter(field => !body[field])
   
   if (missingFields.length > 0) {

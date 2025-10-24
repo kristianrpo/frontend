@@ -15,10 +15,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <AuthProvider>
           <Navbar />
-          <main className="min-h-screen flex items-start p-8">
-            <div className="container mx-auto">
-              {children}
-            </div>
+          <main>
+            {children}
           </main>
         </AuthProvider>
       </body>

@@ -3,7 +3,7 @@ import { useAuth } from '../providers/AuthProvider'
 import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
 
-export default function DashboardPage() {
+export default function DocumentsPage() {
   const { user, loading, logout } = useAuth()
   const router = useRouter()
 

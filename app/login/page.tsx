@@ -1,5 +1,6 @@
 "use client"
 import React, { useState } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '../providers/AuthProvider'
 
@@ -38,7 +39,7 @@ export default function LoginPage() {
     
     try {
       await login(email, password)
-      router.push('/dashboard')
+      router.push('/documents')
     } catch (err: any) {
       console.error('Login error:', err)
       
@@ -67,14 +68,60 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="max-w-md mx-auto bg-white p-6 rounded shadow">
-      <h2 className="text-xl font-semibold mb-4">Iniciar Sesión</h2>
-      <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-  <input required value={email} onChange={e => setEmail(e.target.value)} placeholder="Correo electrónico" className="border p-2 rounded" />
-  <input required value={password} onChange={e => setPassword(e.target.value)} type="password" placeholder="Contraseña" className="border p-2 rounded" />
-        <button disabled={loading} className="bg-blue-600 text-white px-4 py-2 rounded disabled:opacity-50">{loading ? 'Entrando...' : 'Iniciar Sesión'}</button>
-        {error && <div className="text-red-600">{error}</div>}
-      </form>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4">
+      <div className="max-w-md w-full bg-white p-8 rounded-2xl shadow-xl">
+        <div className="text-center mb-8">
+          <div className="w-16 h-16 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <span className="text-white font-bold text-2xl">C</span>
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Iniciar Sesión</h2>
+          <p className="text-gray-600">Accede a tu Carpeta Ciudadana</p>
+        </div>
+        
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div>
+            <input 
+              required 
+              value={email} 
+              onChange={e => setEmail(e.target.value)} 
+              placeholder="Correo electrónico" 
+              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200" 
+            />
+          </div>
+          <div>
+            <input 
+              required 
+              value={password} 
+              onChange={e => setPassword(e.target.value)} 
+              type="password" 
+              placeholder="Contraseña" 
+              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200" 
+            />
+          </div>
+          
+          <button 
+            disabled={loading} 
+            className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-3 rounded-xl font-semibold hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+          >
+            {loading ? 'Entrando...' : 'Iniciar Sesión'}
+          </button>
+          
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl">
+              {error}
+            </div>
+          )}
+        </form>
+        
+        <div className="mt-6 text-center">
+          <p className="text-gray-600">
+            ¿No tienes cuenta?{' '}
+            <Link href="/register" className="text-blue-600 hover:text-blue-700 font-semibold">
+              Regístrate aquí
+            </Link>
+          </p>
+        </div>
+      </div>
     </div>
   )
 }
