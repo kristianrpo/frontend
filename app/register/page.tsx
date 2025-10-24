@@ -20,7 +20,6 @@ export default function RegisterPage() {
       setError('Email, nombre, contraseña e ID Ciudadano son requeridos')
       return false
     }
-    // simple email check
     const re = /^(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(".+"))@(([^<>()[\]\\.,;:\s@\"]+\.)+[^<>()[\]\\.,;:\s@\"]{2,})$/i
     if (!re.test(email)) {
       setError('Email no tiene formato válido')
@@ -47,7 +46,6 @@ export default function RegisterPage() {
       const payload: any = { email, password, name, id_citizen: Number(idCitizen) }
       
       await register(payload)
-      // registration succeeded, user must login to obtain tokens
       router.push('/login')
     } catch (err: any) {
       setError(err.message || 'Error al registrarse')

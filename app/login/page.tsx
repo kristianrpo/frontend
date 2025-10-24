@@ -18,7 +18,6 @@ export default function LoginPage() {
       setError('Email y password son requeridos')
       return false
     }
-    // simple email check
     const re = /^(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(".+"))@(([^<>()[\]\\.,;:\s@\"]+\.)+[^<>()[\]\\.,;:\s@\"]{2,})$/i
     if (!re.test(email)) {
       setError('Email no tiene formato válido')
@@ -43,7 +42,6 @@ export default function LoginPage() {
     } catch (err: any) {
       console.error('Login error:', err)
       
-      // Intentar parsear el error como JSON para obtener detalles específicos
       let errorMessage = err.message || 'Error al iniciar sesión'
       
       try {
@@ -58,7 +56,6 @@ export default function LoginPage() {
           }
         }
       } catch (parseErr) {
-        // Si no se puede parsear como JSON, usar el mensaje original
       }
       
       setError(errorMessage)

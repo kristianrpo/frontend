@@ -22,7 +22,7 @@ export default function DocumentsPage() {
   }
 
   if (!user) {
-    return null // Se redirigirá automáticamente
+    return null
   }
 
   const handleLogout = async () => {
@@ -56,7 +56,7 @@ export default function DocumentsPage() {
       <div className="mt-8 p-4 bg-blue-50 rounded-lg">
         <h3 className="text-lg font-semibold text-blue-800 mb-2">Estado de Autenticación</h3>
         <p className="text-blue-700">
-          ✅ Usuario autenticado correctamente
+          Usuario autenticado correctamente
         </p>
         <p className="text-sm text-blue-600 mt-1">
           Los tokens se renuevan automáticamente en segundo plano
