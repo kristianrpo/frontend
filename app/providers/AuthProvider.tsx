@@ -22,13 +22,18 @@ export function useAuth() {
 
 function decodeExpFromPayload(payload: any): number | null {
   if (!payload) return null
-  if (payload.exp) return Number(payload.exp) * 1000
+  if (payload.exp) {
+    // El exp ya viene en milisegundos desde el microservicio
+    const expValue = Number(payload.exp)
+    return expValue
+  }
   return null
 }
 
 function getTokenExpiration(token: string): number | null {
   try {
     const payload = JSON.parse(atob(token.split('.')[1]))
+    // Los JWTs estándar tienen exp en segundos, convertir a milisegundos
     return payload.exp ? payload.exp * 1000 : null
   } catch {
     return null
@@ -40,6 +45,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
   const [loading, setLoading] = useState(true)
   const refreshTimeout = useRef<number | null>(null)
   const lastRefreshTime = useRef<number>(0)
+  const isRefreshing = useRef<boolean>(false)
 
   useEffect(() => {
     let mounted = true
@@ -68,6 +74,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
     if (!userPayload) return
     
     const expMs = decodeExpFromPayload(userPayload)
+    
     if (!expMs) {
       if (refreshTimeout.current) clearTimeout(refreshTimeout.current)
       refreshTimeout.current = window.setTimeout(async () => {
@@ -117,14 +124,11 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
       return
     }
     
-    const refreshBefore = 5 * 60 * 1000
+    // Refresh 1 minuto antes de expirar
+    const refreshBefore = 1 * 60 * 1000 // 1 minuto antes
     let timeout = msUntilExpiry - refreshBefore
     
-    const minTimeout = 2 * 60 * 1000
-    if (timeout < minTimeout) {
-      timeout = minTimeout
-    }
-    
+    // Si el token expira en menos de 1 minuto, refrescar inmediatamente
     if (timeout <= 0) {
       doRefresh().then(ok => {
         if (ok) {
@@ -145,7 +149,16 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
       return
     }
     
-    if (refreshTimeout.current) clearTimeout(refreshTimeout.current)
+    // Mínimo 10 segundos para evitar timeouts muy cortos
+    const minTimeout = 10 * 1000
+    if (timeout < minTimeout) {
+      timeout = minTimeout
+    }
+    
+    if (refreshTimeout.current) {
+      clearTimeout(refreshTimeout.current)
+    }
+    
     refreshTimeout.current = window.setTimeout(async () => {
       const ok = await doRefresh()
       if (ok) {
@@ -165,18 +178,27 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
 
   async function doRefresh(): Promise<boolean> {
     try {
+      if (isRefreshing.current) {
+        return true
+      }
+      
       const now = Date.now()
       const timeSinceLastRefresh = now - lastRefreshTime.current
-      const minRefreshInterval = 30 * 1000
+      const minRefreshInterval = 10 * 1000 // Reducido a 10 segundos
       
       if (timeSinceLastRefresh < minRefreshInterval) {
         return true
       }
       
+      isRefreshing.current = true
       lastRefreshTime.current = now
+      
       const res = await fetch('/api/auth/refresh', { method: 'POST' })
+      
+      isRefreshing.current = false
       return res.ok
     } catch (e) {
+      isRefreshing.current = false
       return false
     }
   }
@@ -217,6 +239,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
 
   async function fetchWithRefresh(input: RequestInfo, init?: RequestInit): Promise<Response> {
     let res = await fetch(input, init)
+    
     if (res.status === 401) {
       const refreshSuccess = await doRefresh()
       if (refreshSuccess) {

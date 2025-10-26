@@ -1,6 +1,10 @@
 import cookie from 'cookie'
-import { createErrorResponse } from '@/lib/auth-utils'
-import { signToken, verifyToken } from '@/lib/jwt'
+import { 
+  createErrorResponse, 
+  makeAuthRequest, 
+  extractErrorInfo, 
+  handleAuthError 
+} from '@/lib/auth-utils'
 
 export async function POST(req: Request) {
   try {
@@ -12,27 +16,32 @@ export async function POST(req: Request) {
       return createErrorResponse('No refresh token', 401, 'MISSING_REFRESH_TOKEN')
     }
 
-    // Validación local del refresh token y generación de nuevo access token
-    try {
-      const decoded = verifyToken(refreshToken)
-      if (!decoded) {
-        return createErrorResponse('Invalid refresh token', 401, 'INVALID_REFRESH_TOKEN')
-      }
+    const { response, data } = await makeAuthRequest('/auth/refresh', 'POST', {
+      refresh_token: refreshToken
+    })
 
-      // Generar nuevo access token con la misma información del refresh token
-      const newAccessToken = signToken(decoded, '1h') // Token de acceso válido por 1 hora
-      
-      return handleSuccessfulRefresh({
-        access_token: newAccessToken,
-        expires_in: 3600, // 1 hora
-        refresh_token: refreshToken // Mantener el mismo refresh token
-      })
-    } catch (error) {
-      return createErrorResponse('Invalid refresh token', 401, 'INVALID_REFRESH_TOKEN')
+    if (!response.ok) {
+      const errorInfo = extractErrorInfo(data, response, '/auth/refresh')
+      return createErrorResponse(
+        errorInfo.error,
+        errorInfo.status,
+        errorInfo.code,
+        errorInfo.details,
+        errorInfo.url
+      )
     }
 
+    const { access_token, expires_in, refresh_token: newRefreshToken, token_type } = data
+    
+    return handleSuccessfulRefresh({
+      access_token,
+      expires_in,
+      refresh_token: newRefreshToken || refreshToken,
+      token_type
+    })
+
   } catch (err: any) {
-    return createErrorResponse('Server error', 500, 'SERVER_ERROR')
+    return handleAuthError(err, '/auth/refresh')
   }
 }
 

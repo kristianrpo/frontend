@@ -179,7 +179,7 @@ function extractDocumentsFromResponse(result: any, page: number, limit: number):
 
 function extractDocumentFromResponse(result: any): Document {
   if (result.success && result.data) {
-    return result.data.document || result.data
+    return result.data
   }
   return result.document || result
 }
@@ -194,6 +194,13 @@ export async function getDocuments(fetchWithRefresh: (input: RequestInfo, init?:
   return extractDocumentsFromResponse(result, page, limit)
 }
 
+export async function getDocument(fetchWithRefresh: (input: RequestInfo, init?: RequestInit) => Promise<Response>, documentId: string): Promise<Document> {
+  const response = await fetchWithRefresh(`/api/documents/${documentId}`)
+  const result = await handleApiResponse(response, 'Error al obtener documento')
+  
+  return extractDocumentFromResponse(result)
+}
+
 export async function deleteDocument(fetchWithRefresh: (input: RequestInfo, init?: RequestInit) => Promise<Response>, documentId: string): Promise<void> {
   const response = await fetchWithRefresh(`/api/documents/${documentId}`, { method: 'DELETE' })
   await handleApiResponse(response, 'Error al eliminar documento')
@@ -202,6 +209,11 @@ export async function deleteDocument(fetchWithRefresh: (input: RequestInfo, init
 export async function deleteAllDocuments(fetchWithRefresh: (input: RequestInfo, init?: RequestInit) => Promise<Response>): Promise<void> {
   const response = await fetchWithRefresh('/api/documents', { method: 'DELETE' })
   await handleApiResponse(response, 'Error al eliminar todos los documentos')
+}
+
+export async function requestDocumentAuthentication(fetchWithRefresh: (input: RequestInfo, init?: RequestInit) => Promise<Response>, documentId: string): Promise<void> {
+  const response = await fetchWithRefresh(`/api/documents/${documentId}/authenticate`, { method: 'POST' })
+  await handleApiResponse(response, 'Error al solicitar autenticación del documento')
 }
 
 export async function uploadDocument(fetchWithRefresh: (input: RequestInfo, init?: RequestInit) => Promise<Response>, file: File): Promise<Document> {

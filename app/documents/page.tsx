@@ -191,6 +191,36 @@ export default function DocumentsPage() {
     }
   }
 
+  function getStatusColor(status: string) {
+    if (!status || status === 'string') return 'text-gray-600 bg-gray-100'
+    
+    switch (status.toLowerCase()) {
+      case 'authenticated':
+        return 'text-green-600 bg-green-100'
+      case 'authenticating':
+        return 'text-blue-600 bg-blue-100'
+      case 'unauthenticated':
+        return 'text-yellow-600 bg-yellow-100'
+      default: 
+        return 'text-gray-600 bg-gray-100'
+    }
+  }
+
+  function getStatusText(status: string) {
+    if (!status || status === 'string') return 'Desconocido'
+    
+    switch (status.toLowerCase()) {
+      case 'authenticated':
+        return 'Autenticado'
+      case 'authenticating':
+        return 'Autenticando'
+      case 'unauthenticated':
+        return 'No Autenticado'
+      default: 
+        return 'Desconocido'
+    }
+  }
+
   if (loading) {
     return (
       <div className="max-w-md mx-auto bg-white p-6 rounded shadow">
@@ -426,7 +456,7 @@ export default function DocumentsPage() {
             <>
               <div className="space-y-4 mb-6 sm:mb-8">
                 {documents.map((doc) => (
-                  <div key={doc.id} className="card-container bg-gradient-to-r from-white to-gray-50 border border-gray-200 rounded-xl p-4 sm:p-6 hover:shadow-lg transition-all duration-200 group overflow-hidden">
+                  <div key={doc.id} className="card-container bg-gradient-to-r from-white to-gray-50 border border-gray-200 rounded-xl p-4 sm:p-6 hover:shadow-lg transition-all duration-200 group overflow-hidden cursor-pointer" onClick={() => router.push(`/documents/${doc.id}`)}>
                     {/* Header con título y botón */}
                     <div className="flex items-start justify-between gap-3 mb-4">
                       <div className="flex items-center gap-3 min-w-0 flex-1">
@@ -442,7 +472,10 @@ export default function DocumentsPage() {
                       </div>
                       
                       <button
-                        onClick={() => handleDeleteDocument(doc.id)}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleDeleteDocument(doc.id)
+                        }}
                         className="bg-gradient-to-r from-red-500 to-red-600 text-white px-3 py-2 rounded-lg font-medium hover:from-red-600 hover:to-red-700 transition-all duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 flex items-center gap-1 text-xs sm:text-sm flex-shrink-0"
                       >
                         <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -461,12 +494,8 @@ export default function DocumentsPage() {
                       
                       <div className="flex justify-between items-center">
                         <span className="text-gray-500 text-xs font-medium">Estado:</span>
-                        <span className={`px-2 py-1 rounded-full text-xs ${
-                          doc.authentication_status === 'verified' 
-                            ? 'bg-green-100 text-green-800' 
-                            : 'bg-yellow-100 text-yellow-800'
-                        }`}>
-                          {doc.authentication_status || 'Pendiente'}
+                        <span className={`px-2 py-1 rounded-full text-xs ${getStatusColor(doc.authentication_status)}`}>
+                          {getStatusText(doc.authentication_status)}
                         </span>
                       </div>
                       

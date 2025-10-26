@@ -10,6 +10,59 @@ import {
   extractDocumentsErrorInfo
 } from '@/lib/documents-utils'
 
+export async function GET(
+  req: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const resolvedParams = await params
+    const cookieStore = await cookies()
+    
+    const authError = validateAuth(cookieStore)
+    if (authError) {
+      return createDocumentsErrorResponse(authError, 401, 'MISSING_TOKEN')
+    }
+
+    const documentId = resolvedParams.id
+    if (!documentId) {
+      return createDocumentsErrorResponse('ID de documento requerido', 400, 'MISSING_DOCUMENT_ID')
+    }
+
+    if (!DOCUMENTS_BASE) {
+      return createDocumentsErrorResponse('Microservicio de documentos no configurado', 500, 'SERVICE_NOT_CONFIGURED')
+    }
+
+    const accessToken = getAccessToken(cookieStore)
+    
+    const { response, data } = await makeDocumentsRequest(
+      `/documents/${documentId}`,
+      'GET',
+      undefined,
+      {
+        'Authorization': `Bearer ${accessToken}`
+      }
+    )
+
+    if (response.ok) {
+      return createDocumentsSuccessResponse(data)
+    }
+    console.log(response)
+
+    const errorInfo = extractDocumentsErrorInfo(data, response, `/documents/${documentId}`)
+    return createDocumentsErrorResponse(
+      errorInfo.error,
+      errorInfo.status,
+      errorInfo.code,
+      errorInfo.details,
+      errorInfo.url
+    )
+
+  } catch (error) {
+    const resolvedParams = await params
+    return handleDocumentsError(error, `/documents/${resolvedParams.id}`)
+  }
+}
+
 export async function DELETE(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
