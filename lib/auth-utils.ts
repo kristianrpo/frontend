@@ -1,7 +1,3 @@
-/**
- * Utilidades compartidas para los endpoints de autenticación
- */
-
 export const AUTH_BASE = process.env.AUTH_BASE_URL || ''
 
 export interface AuthError {
@@ -20,166 +16,90 @@ export interface AuthResponse<T = any> {
   status: number
 }
 
-/**
- * Crea una respuesta de error estandarizada
- */
-export function createErrorResponse(
-  error: string,
-  status: number = 500,
-  code: string = 'UNKNOWN_ERROR',
-  details?: string,
-  url?: string
-): Response {
-  const errorResponse: AuthError = {
-    error,
-    code,
-    details: details || `HTTP ${status}`,
-    status,
-    url
+function buildErrorResponse(error: string, status: number = 500, code: string = 'UNKNOWN_ERROR', details?: string, url?: string): Response {
+  const errorResponse: AuthError = { error, code, details: details || `HTTP ${status}`, status, url }
+  return new Response(JSON.stringify(errorResponse), { status, headers: { 'Content-Type': 'application/json' } })
+}
+
+function buildSuccessResponse<T>(data: T, status: number = 200): Response {
+  return new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json' } })
+}
+
+function parseResponseData(response: Response): Promise<any> {
+  const contentType = response.headers.get('content-type')
+  
+  if (contentType && contentType.includes('application/json')) {
+    return response.json().catch(() => ({
+      error: 'Respuesta inválida del microservicio de autenticación',
+      details: 'El servidor devolvió contenido que no es JSON válido',
+      status: response.status
+    }))
   }
-
-  return new Response(JSON.stringify(errorResponse), {
-    status,
-    headers: { 'Content-Type': 'application/json' }
-  })
+  
+  return response.text().then(textResponse => ({
+    error: 'Microservicio de autenticación no disponible',
+    details: `El servidor devolvió: ${response.status} ${response.statusText}`,
+    status: response.status,
+    response: textResponse.substring(0, 200)
+  }))
 }
 
-/**
- * Crea una respuesta exitosa estandarizada
- */
-export function createSuccessResponse<T>(
-  data: T,
-  status: number = 200
-): Response {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: { 'Content-Type': 'application/json' }
-  })
+function classifyError(err: Error): { message: string; code: string; status: number } {
+  if (err.message.includes('fetch')) {
+    return { message: 'Microservicio de autenticación no disponible', code: 'SERVICE_UNAVAILABLE', status: 503 }
+  }
+  if (err.message.includes('JSON')) {
+    return { message: 'Respuesta inválida del microservicio de autenticación', code: 'INVALID_RESPONSE', status: 502 }
+  }
+  if (err.message.includes('timeout')) {
+    return { message: 'Timeout al conectar con el microservicio de autenticación', code: 'TIMEOUT_ERROR', status: 504 }
+  }
+  return { message: err.message, code: 'NETWORK_ERROR', status: 500 }
 }
 
-/**
- * Maneja errores de red y parsing
- */
+export function createErrorResponse(error: string, status: number = 500, code: string = 'UNKNOWN_ERROR', details?: string, url?: string): Response {
+  return buildErrorResponse(error, status, code, details, url)
+}
+
+export function createSuccessResponse<T>(data: T, status: number = 200): Response {
+  return buildSuccessResponse(data, status)
+}
+
 export function handleAuthError(err: any, endpoint: string): Response {
-  // Determinar el tipo de error
-  let errorMessage = 'Error de conexión con el microservicio de autenticación'
-  let errorCode = 'NETWORK_ERROR'
-  let status = 500
+  const url = `${AUTH_BASE}${endpoint}`
+  const { message, code, status } = err instanceof Error ? classifyError(err) : { message: 'Error de conexión con el microservicio de autenticación', code: 'NETWORK_ERROR', status: 500 }
   
-  if (err instanceof Error) {
-    if (err.message.includes('fetch')) {
-      errorMessage = 'Microservicio de autenticación no disponible'
-      errorCode = 'SERVICE_UNAVAILABLE'
-      status = 503
-    } else if (err.message.includes('JSON')) {
-      errorMessage = 'Respuesta inválida del microservicio de autenticación'
-      errorCode = 'INVALID_RESPONSE'
-      status = 502
-    } else if (err.message.includes('timeout')) {
-      errorMessage = 'Timeout al conectar con el microservicio de autenticación'
-      errorCode = 'TIMEOUT_ERROR'
-      status = 504
-    } else {
-      errorMessage = err.message
-    }
-  }
-  
-  const details = `Error al conectar con ${AUTH_BASE}${endpoint}`
-  
-  return createErrorResponse(
-    errorMessage,
-    status,
-    errorCode,
-    details,
-    `${AUTH_BASE}${endpoint}`
-  )
+  return buildErrorResponse(message, status, code, `Error al conectar con ${url}`, url)
 }
 
-/**
- * Valida campos requeridos para registro
- */
+function validateRequiredFields(body: any, fields: string[]): string | null {
+  const missingFields = fields.filter(field => !body[field])
+  return missingFields.length > 0 ? `Campos requeridos faltantes: ${missingFields.join(', ')}` : null
+}
+
 export function validateRegistrationFields(body: any): string | null {
-  const requiredFields = ['email', 'password', 'name', 'id_citizen']
-  const missingFields = requiredFields.filter(field => !body[field])
-  
-  if (missingFields.length > 0) {
-    return `Campos requeridos faltantes: ${missingFields.join(', ')}`
-  }
-  
-  return null
+  return validateRequiredFields(body, ['email', 'password', 'name', 'id_citizen'])
 }
 
-/**
- * Valida campos requeridos para login
- */
 export function validateLoginFields(body: any): string | null {
-  const requiredFields = ['email', 'password']
-  const missingFields = requiredFields.filter(field => !body[field])
-  
-  if (missingFields.length > 0) {
-    return `Campos requeridos faltantes: ${missingFields.join(', ')}`
-  }
-  
-  return null
+  return validateRequiredFields(body, ['email', 'password'])
 }
 
-/**
- * Hace una petición al microservicio de autenticación
- */
-export async function makeAuthRequest(
-  endpoint: string,
-  method: string = 'POST',
-  body?: any,
-  headers: Record<string, string> = {}
-): Promise<{ response: Response; data: any }> {
-  const defaultHeaders = {
-    'Content-Type': 'application/json',
-    ...headers
-  }
-
+export async function makeAuthRequest(endpoint: string, method: string = 'POST', body?: any, headers: Record<string, string> = {}): Promise<{ response: Response; data: any }> {
   try {
     const response = await fetch(`${AUTH_BASE}${endpoint}`, {
       method,
-      headers: defaultHeaders,
+      headers: { 'Content-Type': 'application/json', ...headers },
       body: body ? JSON.stringify(body) : undefined
     })
-
-    // Verificar si la respuesta es JSON
-    const contentType = response.headers.get('content-type')
-    let data: any = null
-
-    if (contentType && contentType.includes('application/json')) {
-      try {
-        data = await response.json()
-      } catch (jsonError) {
-        // Si falla el parsing JSON, crear un error estructurado
-        data = {
-          error: 'Respuesta inválida del microservicio de autenticación',
-          details: 'El servidor devolvió contenido que no es JSON válido',
-          status: response.status
-        }
-      }
-    } else {
-      // Si no es JSON, crear un error estructurado
-      const textResponse = await response.text()
-      data = {
-        error: 'Microservicio de autenticación no disponible',
-        details: `El servidor devolvió: ${response.status} ${response.statusText}`,
-        status: response.status,
-        response: textResponse.substring(0, 200) // Solo primeros 200 caracteres
-      }
-    }
     
+    const data = await parseResponseData(response)
     return { response, data }
   } catch (networkError) {
-    // Error de red (servidor no disponible, timeout, etc.)
     throw new Error(`Error de conexión con el microservicio de autenticación: ${networkError instanceof Error ? networkError.message : 'Error desconocido'}`)
   }
 }
 
-/**
- * Extrae información de error de la respuesta del microservicio
- */
 export function extractErrorInfo(data: any, response: Response, endpoint: string): AuthError {
   return {
     error: data?.error || data?.message || 'Solicitud fallida',
