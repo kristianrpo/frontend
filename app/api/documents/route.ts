@@ -199,7 +199,7 @@ export async function DELETE(req: Request) {
     const accessToken = getAccessToken(cookieStore)
     
     const { response, data } = await makeDocumentsRequest(
-      '/documents',
+      '/documents/user/delete-all',
       'DELETE',
       undefined,
       {
