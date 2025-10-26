@@ -4,6 +4,49 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '../providers/AuthProvider'
 
+// Función para convertir errores técnicos en mensajes amigables
+function getFriendlyErrorMessage(error: string, code?: string): string {
+  const errorLower = error.toLowerCase()
+  
+  // Errores de credenciales
+  if (errorLower.includes('invalid credentials') || errorLower.includes('unauthorized') || code === 'INVALID_CREDENTIALS') {
+    return 'Email o contraseña incorrectos. Verifica tus credenciales e intenta nuevamente.'
+  }
+  
+  // Errores de usuario no encontrado
+  if (errorLower.includes('user not found') || errorLower.includes('usuario no encontrado')) {
+    return 'No existe una cuenta con este email. Verifica tu email o regístrate.'
+  }
+  
+  // Errores de contraseña
+  if (errorLower.includes('password') && errorLower.includes('incorrect')) {
+    return 'La contraseña es incorrecta. Intenta nuevamente o recupera tu contraseña.'
+  }
+  
+  // Errores de cuenta bloqueada
+  if (errorLower.includes('account locked') || errorLower.includes('cuenta bloqueada')) {
+    return 'Tu cuenta está temporalmente bloqueada. Contacta al soporte técnico.'
+  }
+  
+  // Errores de servicio no disponible
+  if (errorLower.includes('service unavailable') || errorLower.includes('microservicio no disponible')) {
+    return 'El servicio está temporalmente no disponible. Intenta nuevamente en unos minutos.'
+  }
+  
+  // Errores de red/conexión
+  if (errorLower.includes('network') || errorLower.includes('connection') || errorLower.includes('timeout')) {
+    return 'Problema de conexión. Verifica tu internet e intenta nuevamente.'
+  }
+  
+  // Errores de validación
+  if (errorLower.includes('validation') || errorLower.includes('campos requeridos')) {
+    return 'Por favor completa todos los campos requeridos correctamente.'
+  }
+  
+  // Error genérico para casos no manejados
+  return 'No se pudo iniciar sesión. Verifica tus credenciales e intenta nuevamente.'
+}
+
 export default function LoginPage() {
   const router = useRouter()
   const { login } = useAuth()
@@ -42,20 +85,17 @@ export default function LoginPage() {
     } catch (err: any) {
       console.error('Login error:', err)
       
-      let errorMessage = err.message || 'Error al iniciar sesión'
+      let errorMessage = 'Error al iniciar sesión'
       
       try {
         const errorData = JSON.parse(err.message)
         if (errorData.error) {
-          errorMessage = errorData.error
-          if (errorData.details) {
-            errorMessage += ` - ${errorData.details}`
-          }
-          if (errorData.code) {
-            errorMessage += ` (Código: ${errorData.code})`
-          }
+          // Convertir errores técnicos a mensajes amigables
+          errorMessage = getFriendlyErrorMessage(errorData.error, errorData.code)
         }
       } catch (parseErr) {
+        // Si no se puede parsear, usar mensaje genérico
+        errorMessage = 'Credenciales incorrectas. Verifica tu email y contraseña.'
       }
       
       setError(errorMessage)
@@ -104,8 +144,17 @@ export default function LoginPage() {
           </button>
           
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl">
-              {error}
+            <div className="bg-red-50 border-l-4 border-red-400 p-4 rounded-lg">
+              <div className="flex items-center">
+                <div className="flex-shrink-0">
+                  <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <div className="ml-3">
+                  <p className="text-sm text-red-700 font-medium">{error}</p>
+                </div>
+              </div>
             </div>
           )}
         </form>

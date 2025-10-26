@@ -1,17 +1,105 @@
 "use client"
 import { useAuth } from '../providers/AuthProvider'
 import { useRouter } from 'next/navigation'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
+import { getDocuments, deleteDocument, deleteAllDocuments, uploadDocument, Document, DocumentsListResponse } from '../../lib/documents-utils'
 
 export default function DocumentsPage() {
-  const { user, loading, logout } = useAuth()
+  const { user, loading, fetchWithRefresh } = useAuth()
   const router = useRouter()
+  
+  const [documents, setDocuments] = useState<Document[]>([])
+  const [documentsData, setDocumentsData] = useState<DocumentsListResponse | null>(null)
+  const [documentsLoading, setDocumentsLoading] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [limit] = useState(5)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!loading && !user) {
       router.push('/login')
     }
   }, [user, loading, router])
+
+  // Cargar documentos cuando el usuario esté autenticado
+  useEffect(() => {
+    if (!loading && user) {
+      loadDocuments()
+    }
+  }, [user, loading, currentPage])
+
+  const loadDocuments = async () => {
+    if (!user) return
+    
+    setDocumentsLoading(true)
+    setError(null)
+    
+    try {
+      const data = await getDocuments(fetchWithRefresh, { page: currentPage, limit })
+      setDocuments(data.documents)
+      setDocumentsData(data)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al cargar documentos')
+    } finally {
+      setDocumentsLoading(false)
+    }
+  }
+
+  const handleDeleteDocument = async (documentId: string) => {
+    if (!confirm('¿Estás seguro de que quieres eliminar este documento?')) {
+      return
+    }
+    
+    try {
+      await deleteDocument(fetchWithRefresh, documentId)
+      // Recargar documentos después de eliminar
+      await loadDocuments()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al eliminar documento')
+    }
+  }
+
+  const handleDeleteAllDocuments = async () => {
+    if (!confirm('¿Estás seguro de que quieres eliminar TODOS los documentos? Esta acción no se puede deshacer.')) {
+      return
+    }
+    
+    try {
+      await deleteAllDocuments(fetchWithRefresh)
+      // Recargar documentos después de eliminar todos
+      await loadDocuments()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al eliminar todos los documentos')
+    }
+  }
+
+  const handlePageChange = (newPage: number) => {
+    setCurrentPage(newPage)
+  }
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    
+    if (!file) {
+      return
+    }
+
+    setUploading(true)
+    setError(null)
+
+    try {
+      await uploadDocument(fetchWithRefresh, file)
+      // Recargar documentos después de subir
+      await loadDocuments()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al subir documento')
+    } finally {
+      setUploading(false)
+      // Limpiar el input
+      event.target.value = ''
+    }
+  }
 
   if (loading) {
     return (
@@ -25,42 +113,253 @@ export default function DocumentsPage() {
     return null
   }
 
-  const handleLogout = async () => {
-    try {
-      await logout()
-      router.push('/login')
-    } catch (error) {
-      console.error('Error al cerrar sesión:', error)
-    }
-  }
 
   return (
-    <div className="max-w-2xl mx-auto bg-white p-6 rounded shadow">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-2xl font-semibold">Documentos</h2>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+      <style jsx>{`
+        .word-break-all {
+          word-break: break-all !important;
+          overflow-wrap: break-word !important;
+          hyphens: auto !important;
+        }
+        .card-container {
+          max-width: 100% !important;
+          overflow: hidden !important;
+        }
+      `}</style>
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-6 lg:py-8 overflow-x-hidden">
+        {/* Header */}
+        <div className="bg-white rounded-2xl shadow-xl p-4 sm:p-6 lg:p-8 mb-6 sm:mb-8">
+          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 lg:gap-6">
+            <div className="w-full lg:w-auto">
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Mis Documentos</h1>
+              <p className="text-sm sm:text-base text-gray-600">Gestiona y organiza todos tus documentos digitales</p>
+            </div>
+            
+            <div className="w-full lg:w-auto flex flex-col sm:flex-row gap-3">
+              <label className="relative group cursor-pointer w-full sm:w-auto">
+                <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-4 sm:px-6 py-3 rounded-xl font-semibold hover:from-blue-700 hover:to-blue-800 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center justify-center gap-2 cursor-pointer text-sm sm:text-base">
+                  {uploading ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                      <span className="hidden sm:inline">Subiendo...</span>
+                      <span className="sm:hidden">Subiendo</span>
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                      </svg>
+                      <span className="hidden sm:inline">Subir Documento</span>
+                      <span className="sm:hidden">Subir</span>
+                    </>
+                  )}
+                </div>
+                <input
+                  type="file"
+                  onChange={handleFileUpload}
+                  disabled={uploading}
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                  accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png"
+                />
+              </label>
+              
         <button 
-          onClick={handleLogout}
-          className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 transition-colors duration-200"
-        >
-          Cerrar Sesión
+                onClick={handleDeleteAllDocuments}
+                className="w-full sm:w-auto bg-gradient-to-r from-red-500 to-red-600 text-white px-4 sm:px-6 py-3 rounded-xl font-semibold hover:from-red-600 hover:to-red-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none text-sm sm:text-base"
+                disabled={!documents || documents.length === 0}
+              >
+                <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+                <span className="hidden sm:inline">Eliminar Todos</span>
+                <span className="sm:hidden">Eliminar</span>
         </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Alertas */}
+        {error && (
+          <div className="bg-red-50 border-l-4 border-red-400 p-4 sm:p-6 rounded-lg mb-4 sm:mb-6">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <p className="text-sm sm:text-base text-red-700 font-medium">{error}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {uploading && (
+          <div className="bg-blue-50 border-l-4 border-blue-400 p-4 sm:p-6 rounded-lg mb-4 sm:mb-6">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <div className="animate-spin rounded-full h-5 w-5 border-2 border-blue-600 border-t-transparent"></div>
+              </div>
+              <div className="ml-3">
+                <p className="text-sm sm:text-base text-blue-700 font-medium">Subiendo documento...</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Lista de Documentos */}
+        <div className="bg-white rounded-2xl shadow-xl p-4 sm:p-6 lg:p-8">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 sm:mb-6 gap-2">
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Lista de Documentos</h2>
+            {documentsData && (
+              <div className="text-xs sm:text-sm text-gray-500 bg-gray-100 px-2 sm:px-3 py-1 rounded-full">
+                {documents?.length || 0} de {documentsData.total} documentos
+              </div>
+            )}
       </div>
       
-      <div className="mb-4">
-        <p className="text-lg">¡Bienvenido, {user.name || user.email}!</p>
-        {user.email && <p className="text-gray-600">Email: {user.email}</p>}
-        {user.id_citizen && <p className="text-gray-600">ID Ciudadano: {user.id_citizen}</p>}
-        {user.role && <p className="text-gray-600">Rol: {user.role}</p>}
-      </div>
+          {documentsLoading ? (
+            <div className="flex flex-col items-center justify-center py-12 sm:py-16">
+              <div className="animate-spin rounded-full h-10 w-10 sm:h-12 sm:w-12 border-4 border-blue-600 border-t-transparent mb-4"></div>
+              <p className="text-sm sm:text-base text-gray-600 font-medium">Cargando documentos...</p>
+            </div>
+          ) : !documents || documents.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 sm:py-16 text-gray-500">
+              <svg className="w-12 h-12 sm:w-16 sm:h-16 mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              <p className="text-base sm:text-lg font-medium mb-2">No hay documentos</p>
+              <p className="text-xs sm:text-sm text-center px-4">Sube tu primer documento para comenzar</p>
+            </div>
+          ) : (
+            <>
+              <div className="space-y-4 mb-6 sm:mb-8">
+                {documents.map((doc) => (
+                  <div key={doc.id} className="card-container bg-gradient-to-r from-white to-gray-50 border border-gray-200 rounded-xl p-4 sm:p-6 hover:shadow-lg transition-all duration-200 group overflow-hidden">
+                    {/* Header con título y botón */}
+                    <div className="flex items-start justify-between gap-3 mb-4">
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                        <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                          <svg className="w-4 h-4 sm:w-5 sm:h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <h4 className="font-semibold text-gray-900 text-sm sm:text-base break-words leading-tight">{doc.filename || doc.name}</h4>
+                          <p className="text-xs text-gray-500 truncate">{doc.mime_type || doc.type}</p>
+                        </div>
+                      </div>
+                      
+                      <button
+                        onClick={() => handleDeleteDocument(doc.id)}
+                        className="bg-gradient-to-r from-red-500 to-red-600 text-white px-3 py-2 rounded-lg font-medium hover:from-red-600 hover:to-red-700 transition-all duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 flex items-center gap-1 text-xs sm:text-sm flex-shrink-0"
+                      >
+                        <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                        <span className="hidden sm:inline">Eliminar</span>
+                      </button>
+                    </div>
+                    
+                    {/* Metadata en layout vertical para móviles */}
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-500 text-xs font-medium">Tamaño:</span>
+                        <span className="font-medium text-xs">{((doc.size_bytes || doc.size || 0) / 1024).toFixed(2)} KB</span>
+                      </div>
+                      
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-500 text-xs font-medium">Estado:</span>
+                        <span className={`px-2 py-1 rounded-full text-xs ${
+                          doc.authentication_status === 'verified' 
+                            ? 'bg-green-100 text-green-800' 
+                            : 'bg-yellow-100 text-yellow-800'
+                        }`}>
+                          {doc.authentication_status || 'Pendiente'}
+                        </span>
+                      </div>
+                      
+                      <div className="space-y-1">
+                        <span className="text-gray-500 text-xs font-medium">Hash:</span>
+                        <div className="bg-gray-100 p-2 rounded border max-w-full">
+                          <p className="font-mono text-xs break-all leading-relaxed word-break-all">{doc.hash_sha256}</p>
+                        </div>
+                      </div>
+                      
+                      {doc.url && (
+                        <div className="space-y-1">
+                          <span className="text-gray-500 text-xs font-medium">URL:</span>
+                          <div className="bg-gray-100 p-2 rounded border max-w-full">
+                            <p className="font-mono text-xs break-all leading-relaxed word-break-all">{doc.url}</p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
 
-      <div className="mt-8 p-4 bg-blue-50 rounded-lg">
-        <h3 className="text-lg font-semibold text-blue-800 mb-2">Estado de Autenticación</h3>
-        <p className="text-blue-700">
-          Usuario autenticado correctamente
-        </p>
-        <p className="text-sm text-blue-600 mt-1">
-          Los tokens se renuevan automáticamente en segundo plano
-        </p>
+              {/* Paginación */}
+              {documentsData && documentsData.totalPages > 1 && (
+                <div className="flex flex-col sm:flex-row justify-between items-center gap-4 pt-4 sm:pt-6 border-t border-gray-200">
+                  <div className="text-xs sm:text-sm text-gray-600 order-2 sm:order-1">
+                    Mostrando <span className="font-semibold">{documents?.length || 0}</span> de <span className="font-semibold">{documentsData.total}</span> documentos
+                  </div>
+                  
+                  <div className="flex items-center gap-1 sm:gap-2 order-1 sm:order-2">
+                    <button
+                      onClick={() => handlePageChange(currentPage - 1)}
+                      disabled={currentPage === 1}
+                      className="px-3 sm:px-4 py-2 bg-white border border-gray-300 rounded-lg font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center gap-1 sm:gap-2 text-xs sm:text-sm"
+                    >
+                      <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                      </svg>
+                      <span className="hidden sm:inline">Anterior</span>
+                    </button>
+                    
+                    <div className="flex items-center gap-1">
+                      {Array.from({ length: Math.min(3, documentsData.totalPages) }, (_, i) => {
+                        const pageNum = currentPage <= 2 ? i + 1 : 
+                                       currentPage >= documentsData.totalPages - 1 ? 
+                                       documentsData.totalPages - 2 + i : 
+                                       currentPage - 1 + i
+                        
+                        if (pageNum < 1 || pageNum > documentsData.totalPages) return null
+                        
+                        return (
+                          <button
+                            key={pageNum}
+                            onClick={() => handlePageChange(pageNum)}
+                            className={`px-2 sm:px-3 py-2 rounded-lg font-medium transition-all duration-200 text-xs sm:text-sm ${
+                              pageNum === currentPage
+                                ? 'bg-blue-600 text-white shadow-lg'
+                                : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
+                            }`}
+                          >
+                            {pageNum}
+                          </button>
+                        )
+                      })}
+                    </div>
+
+                    <button
+                      onClick={() => handlePageChange(currentPage + 1)}
+                      disabled={currentPage === documentsData.totalPages}
+                      className="px-3 sm:px-4 py-2 bg-white border border-gray-300 rounded-lg font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center gap-1 sm:gap-2 text-xs sm:text-sm"
+                    >
+                      <span className="hidden sm:inline">Siguiente</span>
+                      <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </div>
       </div>
     </div>
   )

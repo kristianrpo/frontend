@@ -1,10 +1,6 @@
 import cookie from 'cookie'
-import { 
-  makeAuthRequest, 
-  extractErrorInfo, 
-  createErrorResponse, 
-  handleAuthError 
-} from '@/lib/auth-utils'
+import { createErrorResponse } from '@/lib/auth-utils'
+import { signToken, verifyToken } from '@/lib/jwt'
 
 export async function POST(req: Request) {
   try {
@@ -16,56 +12,62 @@ export async function POST(req: Request) {
       return createErrorResponse('No refresh token', 401, 'MISSING_REFRESH_TOKEN')
     }
 
-    const { response, data } = await makeAuthRequest('/auth/refresh', 'POST', { 
-      refresh_token: refreshToken 
-    })
+    // Validación local del refresh token y generación de nuevo access token
+    try {
+      const decoded = verifyToken(refreshToken)
+      if (!decoded) {
+        return createErrorResponse('Invalid refresh token', 401, 'INVALID_REFRESH_TOKEN')
+      }
 
-    if (!response.ok) {
-      const errorInfo = extractErrorInfo(data, response, '/auth/refresh')
-      return createErrorResponse(
-        errorInfo.error,
-        errorInfo.status,
-        errorInfo.code,
-        errorInfo.details,
-        errorInfo.url
-      )
-    }
-
-    const { access_token, expires_in, refresh_token } = data
-    const headers = new Headers({ 'Content-Type': 'application/json' })
-
-    if (access_token) {
-      const accessMaxAge = Number.isFinite(expires_in) && expires_in > 0 
-        ? expires_in 
-        : 60 * 60 * 24 * 7
-
-      const serializedAccess = cookie.serialize('access_token', access_token, {
-        httpOnly: true,
-        path: '/',
-        maxAge: accessMaxAge,
-        sameSite: 'lax',
-        secure: process.env.NODE_ENV === 'production'
+      // Generar nuevo access token con la misma información del refresh token
+      const newAccessToken = signToken(decoded, '1h') // Token de acceso válido por 1 hora
+      
+      return handleSuccessfulRefresh({
+        access_token: newAccessToken,
+        expires_in: 3600, // 1 hora
+        refresh_token: refreshToken // Mantener el mismo refresh token
       })
-      headers.append('Set-Cookie', serializedAccess)
+    } catch (error) {
+      return createErrorResponse('Invalid refresh token', 401, 'INVALID_REFRESH_TOKEN')
     }
-
-    if (refresh_token) {
-      const serializedRefresh = cookie.serialize('refresh_token', refresh_token, {
-        httpOnly: true,
-        path: '/',
-        maxAge: 60 * 60 * 24 * 30,
-        sameSite: 'lax',
-        secure: process.env.NODE_ENV === 'production'
-      })
-      headers.append('Set-Cookie', serializedRefresh)
-    }
-
-    return new Response(JSON.stringify(data), { 
-      status: 200, 
-      headers 
-    })
 
   } catch (err: any) {
-    return handleAuthError(err, '/auth/refresh')
+    return createErrorResponse('Server error', 500, 'SERVER_ERROR')
   }
+}
+
+function handleSuccessfulRefresh(data: any) {
+  const { access_token, expires_in, refresh_token } = data
+  const headers = new Headers({ 'Content-Type': 'application/json' })
+
+  if (access_token) {
+    const accessMaxAge = Number.isFinite(expires_in) && expires_in > 0 
+      ? expires_in 
+      : 60 * 60 * 24 * 7
+
+    const serializedAccess = cookie.serialize('access_token', access_token, {
+      httpOnly: true,
+      path: '/',
+      maxAge: accessMaxAge,
+      sameSite: 'lax',
+      secure: process.env.NODE_ENV === 'production'
+    })
+    headers.append('Set-Cookie', serializedAccess)
+  }
+
+  if (refresh_token) {
+    const serializedRefresh = cookie.serialize('refresh_token', refresh_token, {
+      httpOnly: true,
+      path: '/',
+      maxAge: 60 * 60 * 24 * 30,
+      sameSite: 'lax',
+      secure: process.env.NODE_ENV === 'production'
+    })
+    headers.append('Set-Cookie', serializedRefresh)
+  }
+
+  return new Response(JSON.stringify(data), { 
+    status: 200, 
+    headers 
+  })
 }

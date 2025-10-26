@@ -61,13 +61,35 @@ export function createSuccessResponse<T>(
  * Maneja errores de red y parsing
  */
 export function handleAuthError(err: any, endpoint: string): Response {
-  const errorMessage = err.message || 'Error de red o servidor'
+  // Determinar el tipo de error
+  let errorMessage = 'Error de conexión con el microservicio de autenticación'
+  let errorCode = 'NETWORK_ERROR'
+  let status = 500
+  
+  if (err instanceof Error) {
+    if (err.message.includes('fetch')) {
+      errorMessage = 'Microservicio de autenticación no disponible'
+      errorCode = 'SERVICE_UNAVAILABLE'
+      status = 503
+    } else if (err.message.includes('JSON')) {
+      errorMessage = 'Respuesta inválida del microservicio de autenticación'
+      errorCode = 'INVALID_RESPONSE'
+      status = 502
+    } else if (err.message.includes('timeout')) {
+      errorMessage = 'Timeout al conectar con el microservicio de autenticación'
+      errorCode = 'TIMEOUT_ERROR'
+      status = 504
+    } else {
+      errorMessage = err.message
+    }
+  }
+  
   const details = `Error al conectar con ${AUTH_BASE}${endpoint}`
   
   return createErrorResponse(
     errorMessage,
-    500,
-    'NETWORK_ERROR',
+    status,
+    errorCode,
     details,
     `${AUTH_BASE}${endpoint}`
   )
@@ -115,15 +137,44 @@ export async function makeAuthRequest(
     ...headers
   }
 
-  const response = await fetch(`${AUTH_BASE}${endpoint}`, {
-    method,
-    headers: defaultHeaders,
-    body: body ? JSON.stringify(body) : undefined
-  })
+  try {
+    const response = await fetch(`${AUTH_BASE}${endpoint}`, {
+      method,
+      headers: defaultHeaders,
+      body: body ? JSON.stringify(body) : undefined
+    })
 
-  const data = await response.json()
-  
-  return { response, data }
+    // Verificar si la respuesta es JSON
+    const contentType = response.headers.get('content-type')
+    let data: any = null
+
+    if (contentType && contentType.includes('application/json')) {
+      try {
+        data = await response.json()
+      } catch (jsonError) {
+        // Si falla el parsing JSON, crear un error estructurado
+        data = {
+          error: 'Respuesta inválida del microservicio de autenticación',
+          details: 'El servidor devolvió contenido que no es JSON válido',
+          status: response.status
+        }
+      }
+    } else {
+      // Si no es JSON, crear un error estructurado
+      const textResponse = await response.text()
+      data = {
+        error: 'Microservicio de autenticación no disponible',
+        details: `El servidor devolvió: ${response.status} ${response.statusText}`,
+        status: response.status,
+        response: textResponse.substring(0, 200) // Solo primeros 200 caracteres
+      }
+    }
+    
+    return { response, data }
+  } catch (networkError) {
+    // Error de red (servidor no disponible, timeout, etc.)
+    throw new Error(`Error de conexión con el microservicio de autenticación: ${networkError instanceof Error ? networkError.message : 'Error desconocido'}`)
+  }
 }
 
 /**

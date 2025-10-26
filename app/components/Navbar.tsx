@@ -56,26 +56,22 @@ export default function Navbar() {
             {user && (
               <>
                 <Link 
+                  href="/me" 
+                  className="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200"
+                >
+                  Mi Perfil
+                </Link>
+                <Link 
                   href="/documents" 
                   className="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200"
                 >
                   Documentos
                 </Link>
                 <div className="flex items-center space-x-4">
-                  <div className="flex items-center space-x-2">
-                    <div className="w-8 h-8 bg-gradient-to-r from-green-400 to-blue-500 rounded-full flex items-center justify-center">
-                      <span className="text-white font-semibold text-sm">
-                        {user.name ? user.name.charAt(0).toUpperCase() : user.email?.charAt(0).toUpperCase()}
-                      </span>
-                    </div>
-                    <div className="hidden lg:block">
-                      <p className="text-sm font-medium text-gray-900">
-                        {user.name || 'Usuario'}
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        {user.email}
-                      </p>
-                    </div>
+                  <div className="w-8 h-8 bg-gradient-to-r from-green-400 to-blue-500 rounded-full flex items-center justify-center">
+                    <span className="text-white font-semibold text-sm">
+                      {user.email?.charAt(0).toUpperCase()}
+                    </span>
                   </div>
                   <button 
                     onClick={handleLogout}
@@ -125,6 +121,13 @@ export default function Navbar() {
               ) : user ? (
                 <>
                   <Link 
+                    href="/me" 
+                    className="text-gray-700 hover:text-blue-600 block px-3 py-2 rounded-md text-base font-medium"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Mi Perfil
+                  </Link>
+                  <Link 
                     href="/documents" 
                     className="text-gray-700 hover:text-blue-600 block px-3 py-2 rounded-md text-base font-medium"
                     onClick={() => setIsMenuOpen(false)}
@@ -135,13 +138,10 @@ export default function Navbar() {
                     <div className="flex items-center space-x-3 mb-3">
                       <div className="w-10 h-10 bg-gradient-to-r from-green-400 to-blue-500 rounded-full flex items-center justify-center">
                         <span className="text-white font-semibold">
-                          {user.name ? user.name.charAt(0).toUpperCase() : user.email?.charAt(0).toUpperCase()}
+                          {user.email?.charAt(0).toUpperCase()}
                         </span>
                       </div>
                       <div>
-                        <p className="text-sm font-medium text-gray-900">
-                          {user.name || 'Usuario'}
-                        </p>
                         <p className="text-xs text-gray-500">
                           {user.email}
                         </p>
