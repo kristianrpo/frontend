@@ -15,6 +15,9 @@ export default function DocumentsPage() {
   const [currentPage, setCurrentPage] = useState(1)
   const [limit] = useState(5)
   const [error, setError] = useState<string | null>(null)
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([])
+  const [showPreview, setShowPreview] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState<{ [key: string]: 'pending' | 'uploading' | 'completed' | 'error' }>({})
 
   useEffect(() => {
     if (!loading && !user) {
@@ -78,26 +81,113 @@ export default function DocumentsPage() {
     setCurrentPage(newPage)
   }
 
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files || [])
     
-    if (!file) {
+    if (files.length === 0) {
       return
     }
 
+    setSelectedFiles(files)
+    setShowPreview(true)
+    setError(null)
+    
+    // Inicializar progreso para todos los archivos
+    const progress: { [key: string]: 'pending' | 'uploading' | 'completed' | 'error' } = {}
+    files.forEach(file => {
+      progress[file.name] = 'pending'
+    })
+    setUploadProgress(progress)
+    
+    // Limpiar el input
+    event.target.value = ''
+  }
+
+  const handleConfirmUpload = async () => {
+    if (selectedFiles.length === 0) return
+    
     setUploading(true)
     setError(null)
 
     try {
-      await uploadDocument(fetchWithRefresh, file)
-      // Recargar documentos después de subir
+      let hasErrors = false
+      
+      // Subir archivos uno por uno
+      for (let i = 0; i < selectedFiles.length; i++) {
+        const file = selectedFiles[i]
+        
+        // Actualizar progreso a "uploading"
+        setUploadProgress(prev => ({
+          ...prev,
+          [file.name]: 'uploading'
+        }))
+        
+        try {
+          await uploadDocument(fetchWithRefresh, file)
+          
+          // Actualizar progreso a "completed"
+          setUploadProgress(prev => ({
+            ...prev,
+            [file.name]: 'completed'
+          }))
+        } catch (err) {
+          // Actualizar progreso a "error"
+          setUploadProgress(prev => ({
+            ...prev,
+            [file.name]: 'error'
+          }))
+          
+          hasErrors = true
+          console.error(`Error uploading ${file.name}:`, err)
+          // Continuar con el siguiente archivo en lugar de parar
+        }
+      }
+      
+      // Recargar documentos después de subir todos
       await loadDocuments()
+      
+      // Si no hay errores, limpiar inmediatamente
+      if (!hasErrors) {
+        setSelectedFiles([])
+        setShowPreview(false)
+        setUploadProgress({})
+      } else {
+        // Si hay errores, mantener la vista previa para que el usuario vea qué falló
+        // pero limpiar después de un delay más corto
+        setTimeout(() => {
+          setSelectedFiles([])
+          setShowPreview(false)
+          setUploadProgress({})
+        }, 3000)
+      }
+      
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al subir documento')
+      setError(err instanceof Error ? err.message : 'Error al subir documentos')
     } finally {
       setUploading(false)
-      // Limpiar el input
-      event.target.value = ''
+    }
+  }
+
+  const handleCancelUpload = () => {
+    setSelectedFiles([])
+    setShowPreview(false)
+    setUploadProgress({})
+    setError(null)
+  }
+
+  const handleRemoveFile = (fileName: string) => {
+    const newFiles = selectedFiles.filter(file => file.name !== fileName)
+    setSelectedFiles(newFiles)
+    
+    setUploadProgress(prev => {
+      const newProgress = { ...prev }
+      delete newProgress[fileName]
+      return newProgress
+    })
+    
+    // Si no quedan archivos, ocultar la vista previa
+    if (newFiles.length === 0) {
+      setShowPreview(false)
     }
   }
 
@@ -150,14 +240,15 @@ export default function DocumentsPage() {
                       <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                       </svg>
-                      <span className="hidden sm:inline">Subir Documento</span>
+                      <span className="hidden sm:inline">Subir Documentos</span>
                       <span className="sm:hidden">Subir</span>
                     </>
                   )}
                 </div>
                 <input
                   type="file"
-                  onChange={handleFileUpload}
+                  multiple
+                  onChange={handleFileSelect}
                   disabled={uploading}
                   className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                   accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png"
@@ -191,6 +282,105 @@ export default function DocumentsPage() {
               <div className="ml-3">
                 <p className="text-sm sm:text-base text-red-700 font-medium">{error}</p>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Vista Previa de Archivos */}
+        {showPreview && selectedFiles.length > 0 && (
+          <div className="bg-blue-50 border-l-4 border-blue-400 p-4 sm:p-6 rounded-lg mb-4 sm:mb-6">
+            <div className="mb-4">
+              <h3 className="text-lg font-semibold text-blue-900 mb-2">
+                Archivos Seleccionados ({selectedFiles.length})
+              </h3>
+            </div>
+            
+            <div className="space-y-3 mb-4">
+              {selectedFiles.map((file, index) => (
+                <div key={`${file.name}-${index}`} className="flex items-center justify-between bg-white p-3 rounded-lg border group hover:shadow-md transition-all duration-200">
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-gray-900 truncate">{file.name}</p>
+                      <p className="text-xs text-gray-500">{(file.size / 1024).toFixed(2)} KB • {file.type}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-2 ml-3">
+                    {/* Estado de progreso */}
+                    {uploadProgress[file.name] === 'pending' && (
+                      <div className="w-6 h-6 bg-gray-200 rounded-full flex items-center justify-center">
+                        <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
+                      </div>
+                    )}
+                    {uploadProgress[file.name] === 'uploading' && (
+                      <div className="w-6 h-6 bg-blue-200 rounded-full flex items-center justify-center">
+                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-600 border-t-transparent"></div>
+                      </div>
+                    )}
+                    {uploadProgress[file.name] === 'completed' && (
+                      <div className="w-6 h-6 bg-green-200 rounded-full flex items-center justify-center">
+                        <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                      </div>
+                    )}
+                    {uploadProgress[file.name] === 'error' && (
+                      <div className="w-6 h-6 bg-red-200 rounded-full flex items-center justify-center">
+                        <svg className="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </div>
+                    )}
+                    
+                    {/* Botón de eliminar - visible en móviles, hover en desktop */}
+                    {uploadProgress[file.name] === 'pending' && (
+                      <button
+                        onClick={() => handleRemoveFile(file.name)}
+                        className="w-6 h-6 bg-red-100 hover:bg-red-200 rounded-full flex items-center justify-center opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all duration-200"
+                        title="Eliminar archivo"
+                      >
+                        <svg className="w-3 h-3 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+            
+            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+              <button
+                onClick={handleCancelUpload}
+                className="px-4 py-2 bg-gray-500 text-white rounded-lg font-medium hover:bg-gray-600 transition-all duration-200 text-sm"
+              >
+                Cancelar Todo
+              </button>
+              <button
+                onClick={handleConfirmUpload}
+                disabled={uploading}
+                className="px-4 py-2 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg font-medium hover:from-green-600 hover:to-green-700 transition-all duration-200 text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {uploading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                    Subiendo...
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    <span className="hidden sm:inline">Subir Todos ({selectedFiles.length})</span>
+                    <span className="sm:hidden">Subir ({selectedFiles.length})</span>
+                  </>
+                )}
+              </button>
             </div>
           </div>
         )}
@@ -305,8 +495,8 @@ export default function DocumentsPage() {
                 <div className="flex flex-col sm:flex-row justify-between items-center gap-4 pt-4 sm:pt-6 border-t border-gray-200">
                   <div className="text-xs sm:text-sm text-gray-600 order-2 sm:order-1">
                     Mostrando <span className="font-semibold">{documents?.length || 0}</span> de <span className="font-semibold">{documentsData.total}</span> documentos
-                  </div>
-                  
+      </div>
+
                   <div className="flex items-center gap-1 sm:gap-2 order-1 sm:order-2">
                     <button
                       onClick={() => handlePageChange(currentPage - 1)}
