@@ -25,7 +25,6 @@ export default function DocumentsPage() {
     }
   }, [user, loading, router])
 
-  // Cargar documentos cuando el usuario esté autenticado
   useEffect(() => {
     if (!loading && user) {
       loadDocuments()
@@ -56,7 +55,6 @@ export default function DocumentsPage() {
     
     try {
       await deleteDocument(fetchWithRefresh, documentId)
-      // Recargar documentos después de eliminar
       await loadDocuments()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al eliminar documento')
@@ -70,7 +68,6 @@ export default function DocumentsPage() {
     
     try {
       await deleteAllDocuments(fetchWithRefresh)
-      // Recargar documentos después de eliminar todos
       await loadDocuments()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al eliminar todos los documentos')
@@ -92,14 +89,12 @@ export default function DocumentsPage() {
     setShowPreview(true)
     setError(null)
     
-    // Inicializar progreso para todos los archivos
     const progress: { [key: string]: 'pending' | 'uploading' | 'completed' | 'error' } = {}
     files.forEach(file => {
       progress[file.name] = 'pending'
     })
     setUploadProgress(progress)
     
-    // Limpiar el input
     event.target.value = ''
   }
 
@@ -112,11 +107,9 @@ export default function DocumentsPage() {
     try {
       let hasErrors = false
       
-      // Subir archivos uno por uno
       for (let i = 0; i < selectedFiles.length; i++) {
         const file = selectedFiles[i]
         
-        // Actualizar progreso a "uploading"
         setUploadProgress(prev => ({
           ...prev,
           [file.name]: 'uploading'
@@ -125,13 +118,11 @@ export default function DocumentsPage() {
         try {
           await uploadDocument(fetchWithRefresh, file)
           
-          // Actualizar progreso a "completed"
           setUploadProgress(prev => ({
             ...prev,
             [file.name]: 'completed'
           }))
         } catch (err) {
-          // Actualizar progreso a "error"
           setUploadProgress(prev => ({
             ...prev,
             [file.name]: 'error'
@@ -139,21 +130,14 @@ export default function DocumentsPage() {
           
           hasErrors = true
           console.error(`Error uploading ${file.name}:`, err)
-          // Continuar con el siguiente archivo en lugar de parar
         }
       }
-      
-      // Recargar documentos después de subir todos
       await loadDocuments()
-      
-      // Si no hay errores, limpiar inmediatamente
       if (!hasErrors) {
         setSelectedFiles([])
         setShowPreview(false)
         setUploadProgress({})
       } else {
-        // Si hay errores, mantener la vista previa para que el usuario vea qué falló
-        // pero limpiar después de un delay más corto
         setTimeout(() => {
           setSelectedFiles([])
           setShowPreview(false)
@@ -185,7 +169,6 @@ export default function DocumentsPage() {
       return newProgress
     })
     
-    // Si no quedan archivos, ocultar la vista previa
     if (newFiles.length === 0) {
       setShowPreview(false)
     }
@@ -367,7 +350,6 @@ export default function DocumentsPage() {
                       </div>
                     )}
                     
-                    {/* Botón de eliminar - visible en móviles, hover en desktop */}
                     {uploadProgress[file.name] === 'pending' && (
                       <button
                         onClick={() => handleRemoveFile(file.name)}

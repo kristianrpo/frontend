@@ -68,11 +68,9 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // En Next.js 16, params es una Promise y debe ser awaited
     const resolvedParams = await params
     const cookieStore = await cookies()
     
-    // Validar autenticación
     const authError = validateAuth(cookieStore)
     if (authError) {
       return createDocumentsErrorResponse(authError, 401, 'MISSING_TOKEN')
@@ -83,7 +81,6 @@ export async function DELETE(
       return createDocumentsErrorResponse('ID de documento requerido', 400, 'MISSING_DOCUMENT_ID')
     }
 
-    // Eliminar documento del microservicio
     if (!DOCUMENTS_BASE) {
       return createDocumentsErrorResponse('Microservicio de documentos no configurado', 500, 'SERVICE_NOT_CONFIGURED')
     }

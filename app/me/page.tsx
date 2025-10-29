@@ -55,7 +55,6 @@ export default function MePage() {
       </div>
       
       <div className="space-y-6">
-        {/* Información básica del usuario */}
         <div className="p-6 bg-gray-50 rounded-lg">
           <h3 className="text-lg font-semibold text-gray-800 mb-4">Información Personal</h3>
           <div className="space-y-3">
@@ -70,7 +69,6 @@ export default function MePage() {
           </div>
         </div>
 
-        {/* Estado de autenticación */}
         <div className="p-6 bg-blue-50 rounded-lg">
           <h3 className="text-lg font-semibold text-blue-800 mb-2">Estado de Autenticación</h3>
           <div className="space-y-2">
@@ -86,7 +84,6 @@ export default function MePage() {
           </div>
         </div>
 
-        {/* Información técnica del token */}
         <div className="p-6 bg-green-50 rounded-lg">
           <h3 className="text-lg font-semibold text-green-800 mb-2">Información Técnica</h3>
           <div className="space-y-2 text-sm">
@@ -102,7 +99,6 @@ export default function MePage() {
           </div>
         </div>
 
-        {/* Acciones rápidas */}
         <div className="p-6 bg-yellow-50 rounded-lg">
           <h3 className="text-lg font-semibold text-yellow-800 mb-4">Acciones Rápidas</h3>
           <div className="flex flex-wrap gap-3">

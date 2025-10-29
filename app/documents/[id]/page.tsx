@@ -41,8 +41,6 @@ export default function DocumentDetailPage() {
     try {
       setAuthenticating(true)
       await requestDocumentAuthentication(fetchWithRefresh, document.id)
-      
-      // Recargar el documento para obtener el estado actualizado del microservicio
       await loadDocument()
     } catch (err: any) {
       console.error('Error authenticating document:', err)
@@ -215,7 +213,6 @@ export default function DocumentDetailPage() {
             </div>
           </div>
 
-          {/* Visualización del archivo */}
           <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
             <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-4 sm:mb-6">Vista Previa</h2>
             <div className="aspect-video bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden">

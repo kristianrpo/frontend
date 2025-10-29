@@ -25,7 +25,6 @@ export async function GET() {
       return createErrorResponse('No access token', 401, 'MISSING_TOKEN')
     }
 
-    // Validación local del JWT - no necesitamos llamar al microservicio
     const result = await validateLocally(accessToken)
     return createSuccessResponse(result)
 

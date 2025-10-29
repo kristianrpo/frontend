@@ -23,7 +23,6 @@ export function useAuth() {
 function decodeExpFromPayload(payload: any): number | null {
   if (!payload) return null
   if (payload.exp) {
-    // El exp ya viene en milisegundos desde el microservicio
     const expValue = Number(payload.exp)
     return expValue
   }
@@ -33,7 +32,6 @@ function decodeExpFromPayload(payload: any): number | null {
 function getTokenExpiration(token: string): number | null {
   try {
     const payload = JSON.parse(atob(token.split('.')[1]))
-    // Los JWTs estándar tienen exp en segundos, convertir a milisegundos
     return payload.exp ? payload.exp * 1000 : null
   } catch {
     return null
@@ -115,7 +113,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
         } else {
           setUser(null)
         }
-      }, 60 * 60 * 1000) // 1 hora
+      }, 60 * 60 * 1000)
       return
     }
     
@@ -124,11 +122,9 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
       return
     }
     
-    // Refresh 1 minuto antes de expirar
-    const refreshBefore = 1 * 60 * 1000 // 1 minuto antes
+    const refreshBefore = 1 * 60 * 1000
     let timeout = msUntilExpiry - refreshBefore
     
-    // Si el token expira en menos de 1 minuto, refrescar inmediatamente
     if (timeout <= 0) {
       doRefresh().then(ok => {
         if (ok) {
@@ -149,7 +145,6 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
       return
     }
     
-    // Mínimo 10 segundos para evitar timeouts muy cortos
     const minTimeout = 10 * 1000
     if (timeout < minTimeout) {
       timeout = minTimeout
@@ -184,7 +179,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
       
       const now = Date.now()
       const timeSinceLastRefresh = now - lastRefreshTime.current
-      const minRefreshInterval = 10 * 1000 // Reducido a 10 segundos
+      const minRefreshInterval = 10 * 1000  
       
       if (timeSinceLastRefresh < minRefreshInterval) {
         return true

@@ -8,7 +8,6 @@ export async function POST(req: Request) {
     const accessToken = parsed.access_token || parsed.token || ''
     const refreshToken = parsed.refresh_token || ''
 
-    // Default response if no microservice is configured
     let microserviceResponse: any = { message: 'logged out' }
 
     if (AUTH_BASE) {
@@ -30,7 +29,6 @@ export async function POST(req: Request) {
 
         microserviceResponse = data || { message: 'logged out' }
       } catch (e: any) {
-        // Network or parse error when contacting microservice
         return handleAuthError(e, '/logout')
       }
     }
