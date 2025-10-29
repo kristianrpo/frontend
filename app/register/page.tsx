@@ -5,22 +5,35 @@ import { useRouter } from 'next/navigation'
 import { useAuth } from '../providers/AuthProvider'
 import { getFriendlyRegisterErrorMessage, parseErrorMessage } from '../../lib/error-utils'
 import { validateRegisterForm } from '../../lib/validation-utils'
-import { AuthLayout, FormInput, SubmitButton, ErrorAlert } from '../components/FormComponents'
+import { AuthLayout, SubmitButton, ErrorAlert } from '../components/FormComponents'
 import { useFormState } from '../hooks/useFormState'
 
 export default function RegisterPage() {
   const router = useRouter()
   const { register } = useAuth()
   const { state, error, loading, updateField, setFormError, setFormLoading } = useFormState({
-    email: '',
+    emailLocal: '',
     password: '',
     name: '',
     idCitizen: '' as number | string
   })
 
+  const domainSuffix = '@ccp.com'
+
+  function buildEmail(local: string) {
+    const trimmed = (local || '').trim()
+    return trimmed ? `${trimmed}${domainSuffix}` : ''
+  }
+
   function validate() {
     setFormError(null)
-    const validationError = validateRegisterForm(state.email, state.password, state.name, state.idCitizen)
+    const emailFull = buildEmail(state.emailLocal as unknown as string)
+    const validationError = validateRegisterForm(
+      emailFull,
+      state.password as unknown as string,
+      state.name as unknown as string,
+      state.idCitizen as unknown as number | string
+    )
     if (validationError) {
       setFormError(validationError)
       return false
@@ -37,9 +50,9 @@ export default function RegisterPage() {
     
     try {
       const payload = { 
-        email: state.email, 
-        password: state.password, 
-        name: state.name, 
+        email: buildEmail(state.emailLocal as unknown as string), 
+        password: state.password as unknown as string, 
+        name: state.name as unknown as string, 
         id_citizen: Number(state.idCitizen) 
       }
       
@@ -64,35 +77,57 @@ export default function RegisterPage() {
       linkLabel="Inicia sesión aquí"
     >
       <form onSubmit={handleSubmit} className="space-y-6">
-        <FormInput
-          value={state.email}
-          onChange={(value) => updateField('email', value)}
-          placeholder="Correo electrónico"
-          required
-        />
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Usuario</label>
+          <div className="flex">
+            <input
+              required
+              value={state.emailLocal as unknown as string}
+              onChange={e => updateField('emailLocal' as any, e.target.value)}
+              type="text"
+              placeholder="tu.usuario"
+              className="flex-1 px-4 py-3 border border-gray-300 rounded-l-xl focus:ring-2 focus:ring-green-600 focus:border-transparent transition-all duration-200"
+            />
+            <span className="inline-flex items-center px-3 border border-l-0 border-gray-300 bg-gray-50 text-gray-600 rounded-r-xl select-none">
+              {domainSuffix}
+            </span>
+          </div>
+        </div>
         
-        <FormInput
-          value={state.name}
-          onChange={(value) => updateField('name', value)}
-          placeholder="Nombre completo"
-          required
-        />
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Nombre completo</label>
+          <input
+            required
+            value={state.name as unknown as string}
+            onChange={e => updateField('name' as any, e.target.value)}
+            placeholder="Nombre completo"
+            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-600 focus:border-transparent transition-all duration-200"
+          />
+        </div>
         
-        <FormInput
-          value={state.idCitizen}
-          onChange={(value) => updateField('idCitizen', value === '' ? '' : Number(value))}
-          placeholder="ID Ciudadano"
-          type="number"
-          required
-        />
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">ID Ciudadano</label>
+          <input
+            required
+            value={state.idCitizen as unknown as string}
+            onChange={e => updateField('idCitizen' as any, e.target.value === '' ? '' : Number(e.target.value))}
+            placeholder="ID Ciudadano"
+            type="number"
+            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-600 focus:border-transparent transition-all duration-200"
+          />
+        </div>
         
-        <FormInput
-          value={state.password}
-          onChange={(value) => updateField('password', value)}
-          placeholder="Contraseña"
-          type="password"
-          required
-        />
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Contraseña</label>
+          <input
+            required
+            value={state.password as unknown as string}
+            onChange={e => updateField('password' as any, e.target.value)}
+            placeholder="Contraseña"
+            type="password"
+            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-600 focus:border-transparent transition-all duration-200"
+          />
+        </div>
         
         <SubmitButton
           loading={loading}
