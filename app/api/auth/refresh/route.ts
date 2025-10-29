@@ -16,12 +16,12 @@ export async function POST(req: Request) {
       return createErrorResponse('No refresh token', 401, 'MISSING_REFRESH_TOKEN')
     }
 
-    const { response, data } = await makeAuthRequest('/auth/refresh', 'POST', {
+    const { response, data } = await makeAuthRequest('/refresh', 'POST', {
       refresh_token: refreshToken
     })
 
     if (!response.ok) {
-      const errorInfo = extractErrorInfo(data, response, '/auth/refresh')
+      const errorInfo = extractErrorInfo(data, response, '/refresh')
       return createErrorResponse(
         errorInfo.error,
         errorInfo.status,
@@ -41,7 +41,7 @@ export async function POST(req: Request) {
     })
 
   } catch (err: any) {
-    return handleAuthError(err, '/auth/refresh')
+    return handleAuthError(err, '/refresh')
   }
 }
 

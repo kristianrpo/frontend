@@ -16,10 +16,10 @@ export async function POST(req: Request) {
       return createErrorResponse(validationError, 400, 'VALIDATION_ERROR')
     }
 
-    const { response, data } = await makeAuthRequest('/auth/login', 'POST', body)
+    const { response, data } = await makeAuthRequest('/login', 'POST', body)
 
     if (!response.ok) {
-      const errorInfo = extractErrorInfo(data, response, '/auth/login')
+      const errorInfo = extractErrorInfo(data, response, '/login')
       return createErrorResponse(
         errorInfo.error,
         errorInfo.status,
@@ -67,6 +67,6 @@ export async function POST(req: Request) {
     })
 
   } catch (err: any) {
-    return handleAuthError(err, '/auth/login')
+    return handleAuthError(err, '/login')
   }
 }
