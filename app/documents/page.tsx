@@ -3,10 +3,13 @@ import { useAuth } from '../providers/AuthProvider'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { getDocuments, deleteDocument, deleteAllDocuments, uploadDocument, Document, DocumentsListResponse } from '../../lib/documents-utils'
+import ErrorBoundaryWithToast from '../components/ErrorBoundaryWithToast'
+import { useToast } from '../hooks/useToast'
 
-export default function DocumentsPage() {
+function DocumentsPageContent() {
   const { user, loading, fetchWithRefresh } = useAuth()
   const router = useRouter()
+  const toast = useToast()
   
   const [documents, setDocuments] = useState<Document[]>([])
   const [documentsData, setDocumentsData] = useState<DocumentsListResponse | null>(null)
@@ -14,10 +17,10 @@ export default function DocumentsPage() {
   const [uploading, setUploading] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
   const [limit] = useState(5)
-  const [error, setError] = useState<string | null>(null)
   const [selectedFiles, setSelectedFiles] = useState<File[]>([])
   const [showPreview, setShowPreview] = useState(false)
   const [uploadProgress, setUploadProgress] = useState<{ [key: string]: 'pending' | 'uploading' | 'completed' | 'error' }>({})
+  const loadingRef = useState(false)
 
   useEffect(() => {
     if (!loading && !user) {
@@ -26,25 +29,26 @@ export default function DocumentsPage() {
   }, [user, loading, router])
 
   useEffect(() => {
-    if (!loading && user) {
+    if (!loading && user && !loadingRef[0]) {
       loadDocuments()
     }
   }, [user, loading, currentPage])
 
   const loadDocuments = async () => {
-    if (!user) return
+    if (!user || loadingRef[0]) return
     
+    loadingRef[0] = true
     setDocumentsLoading(true)
-    setError(null)
     
     try {
       const data = await getDocuments(fetchWithRefresh, { page: currentPage, limit })
       setDocuments(data.documents)
       setDocumentsData(data)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al cargar documentos')
+      toast.error(err instanceof Error ? err.message : 'Error al cargar documentos')
     } finally {
       setDocumentsLoading(false)
+      loadingRef[0] = false
     }
   }
 
@@ -55,9 +59,10 @@ export default function DocumentsPage() {
     
     try {
       await deleteDocument(fetchWithRefresh, documentId)
+      toast.success('Documento eliminado exitosamente')
       await loadDocuments()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al eliminar documento')
+      toast.error(err instanceof Error ? err.message : 'Error al eliminar documento')
     }
   }
 
@@ -68,9 +73,10 @@ export default function DocumentsPage() {
     
     try {
       await deleteAllDocuments(fetchWithRefresh)
+      toast.success('Todos los documentos fueron eliminados exitosamente')
       await loadDocuments()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al eliminar todos los documentos')
+      toast.error(err instanceof Error ? err.message : 'Error al eliminar todos los documentos')
     }
   }
 
@@ -87,7 +93,6 @@ export default function DocumentsPage() {
 
     setSelectedFiles(files)
     setShowPreview(true)
-    setError(null)
     
     const progress: { [key: string]: 'pending' | 'uploading' | 'completed' | 'error' } = {}
     files.forEach(file => {
@@ -102,10 +107,11 @@ export default function DocumentsPage() {
     if (selectedFiles.length === 0) return
     
     setUploading(true)
-    setError(null)
+    toast.info(`Subiendo ${selectedFiles.length} documento${selectedFiles.length > 1 ? 's' : ''}...`)
 
     try {
       let hasErrors = false
+      let successCount = 0
       
       for (let i = 0; i < selectedFiles.length; i++) {
         const file = selectedFiles[i]
@@ -122,6 +128,7 @@ export default function DocumentsPage() {
             ...prev,
             [file.name]: 'completed'
           }))
+          successCount++
         } catch (err) {
           setUploadProgress(prev => ({
             ...prev,
@@ -133,11 +140,18 @@ export default function DocumentsPage() {
         }
       }
       await loadDocuments()
+      
       if (!hasErrors) {
+        toast.success(`${successCount} documento${successCount > 1 ? 's subidos' : ' subido'} exitosamente`)
         setSelectedFiles([])
         setShowPreview(false)
         setUploadProgress({})
       } else {
+        if (successCount > 0) {
+          toast.warning(`${successCount} documento${successCount > 1 ? 's subidos' : ' subido'}, pero algunos fallaron`)
+        } else {
+          toast.error('Error al subir documentos')
+        }
         setTimeout(() => {
           setSelectedFiles([])
           setShowPreview(false)
@@ -146,7 +160,7 @@ export default function DocumentsPage() {
       }
       
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al subir documentos')
+      toast.error(err instanceof Error ? err.message : 'Error al subir documentos')
     } finally {
       setUploading(false)
     }
@@ -156,7 +170,6 @@ export default function DocumentsPage() {
     setSelectedFiles([])
     setShowPreview(false)
     setUploadProgress({})
-    setError(null)
   }
 
   const handleRemoveFile = (fileName: string) => {
@@ -282,22 +295,6 @@ export default function DocumentsPage() {
             </div>
           </div>
         </div>
-
-        {/* Alertas */}
-        {error && (
-          <div className="bg-red-50 border-l-4 border-red-400 p-4 sm:p-6 rounded-lg mb-4 sm:mb-6">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                </svg>
-              </div>
-              <div className="ml-3">
-                <p className="text-sm sm:text-base text-red-700 font-medium">{error}</p>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Vista Previa de Archivos */}
         {showPreview && selectedFiles.length > 0 && (
@@ -563,5 +560,14 @@ export default function DocumentsPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+
+export default function DocumentsPage() {
+  return (
+    <ErrorBoundaryWithToast>
+      <DocumentsPageContent />
+    </ErrorBoundaryWithToast>
   )
 }

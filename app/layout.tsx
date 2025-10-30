@@ -2,6 +2,8 @@ import './globals.css'
 import React from 'react'
 import type { Metadata } from 'next'
 import AuthProvider from './providers/AuthProvider'
+import ToastProvider from './providers/ToastProvider'
+import ErrorBoundaryWithToast from './components/ErrorBoundaryWithToast'
 import Navbar from './components/Navbar'
 
 export const metadata: Metadata = {
@@ -14,10 +16,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="es">
       <body>
         <AuthProvider>
-          <Navbar />
-          <main>
-            {children}
-          </main>
+          <ToastProvider>
+            <ErrorBoundaryWithToast>
+              <Navbar />
+              <main>
+                {children}
+              </main>
+            </ErrorBoundaryWithToast>
+          </ToastProvider>
         </AuthProvider>
       </body>
     </html>

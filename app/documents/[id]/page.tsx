@@ -1,16 +1,18 @@
 "use client"
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useAuth } from '../../providers/AuthProvider'
 import { getDocument, requestDocumentAuthentication, Document } from '../../../lib/documents-utils'
+import ErrorBoundaryWithToast from '../../components/ErrorBoundaryWithToast'
+import { useToast } from '../../hooks/useToast'
 
-export default function DocumentDetailPage() {
+function DocumentDetailPageContent() {
   const params = useParams()
   const router = useRouter()
   const { fetchWithRefresh } = useAuth()
+  const toast = useToast()
   const [document, setDocument] = useState<Document | null>(null)
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
   const [authenticating, setAuthenticating] = useState(false)
 
   const documentId = params.id as string
@@ -24,12 +26,11 @@ export default function DocumentDetailPage() {
   async function loadDocument() {
     try {
       setLoading(true)
-      setError(null)
       const doc = await getDocument(fetchWithRefresh, documentId)
       setDocument(doc)
     } catch (err: any) {
       console.error('Error loading document:', err)
-      setError(err.message || 'Error al cargar el documento')
+      toast.error(err.message || 'Error al cargar el documento')
     } finally {
       setLoading(false)
     }
@@ -37,14 +38,16 @@ export default function DocumentDetailPage() {
 
   async function handleAuthenticate() {
     if (!document) return
-    
+
     try {
       setAuthenticating(true)
+      toast.info('Iniciando autenticación del documento...')
       await requestDocumentAuthentication(fetchWithRefresh, document.id)
       await loadDocument()
+      toast.success('Documento autenticado exitosamente')
     } catch (err: any) {
       console.error('Error authenticating document:', err)
-      setError('Error al solicitar autenticación del documento')
+      toast.error('Error al solicitar autenticación del documento')
     } finally {
       setAuthenticating(false)
     }
@@ -69,7 +72,7 @@ export default function DocumentDetailPage() {
 
   function getStatusColor(status: string) {
     if (!status || status === 'string') return 'text-gray-600 bg-gray-100'
-    
+
     switch (status.toLowerCase()) {
       case 'authenticated':
         return 'text-green-600 bg-green-100'
@@ -77,14 +80,14 @@ export default function DocumentDetailPage() {
         return 'text-blue-600 bg-blue-100'
       case 'unauthenticated':
         return 'text-yellow-600 bg-yellow-100'
-      default: 
+      default:
         return 'text-gray-600 bg-gray-100'
     }
   }
 
   function getStatusText(status: string) {
     if (!status || status === 'string') return 'Desconocido'
-    
+
     switch (status.toLowerCase()) {
       case 'authenticated':
         return 'Autenticado'
@@ -92,7 +95,7 @@ export default function DocumentDetailPage() {
         return 'Autenticando'
       case 'unauthenticated':
         return 'No Autenticado'
-      default: 
+      default:
         return 'Desconocido'
     }
   }
@@ -103,24 +106,6 @@ export default function DocumentDetailPage() {
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
           <p className="text-gray-600">Cargando documento...</p>
-        </div>
-      </div>
-    )
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center max-w-md mx-auto p-6">
-          <div className="text-red-500 text-6xl mb-4">⚠️</div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Error</h2>
-          <p className="text-gray-600 mb-6">{error}</p>
-          <button
-            onClick={() => router.push('/documents')}
-            className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            Volver a Documentos
-          </button>
         </div>
       </div>
     )
@@ -187,7 +172,7 @@ export default function DocumentDetailPage() {
                   <p className="text-xs sm:text-sm text-gray-500 truncate">{document.mime_type}</p>
                 </div>
               </div>
-              
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 pt-4 border-t">
                 <div>
                   <p className="text-xs sm:text-sm text-gray-500">Tamaño</p>
@@ -256,5 +241,14 @@ export default function DocumentDetailPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+
+export default function DocumentDetailPage() {
+  return (
+    <ErrorBoundaryWithToast>
+      <DocumentDetailPageContent />
+    </ErrorBoundaryWithToast>
   )
 }

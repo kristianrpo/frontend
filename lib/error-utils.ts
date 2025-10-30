@@ -1,7 +1,8 @@
 export function getFriendlyErrorMessage(error: string, code?: string): string {
   const errorLower = error.toLowerCase()
   
-  if (errorLower.includes('invalid credentials') || errorLower.includes('unauthorized') || code === 'INVALID_CREDENTIALS') {
+  // Verificar si el error contiene el código directamente
+  if (errorLower.includes('invalid_credentials') || errorLower.includes('invalid credentials') || errorLower.includes('unauthorized') || code === 'INVALID_CREDENTIALS') {
     return 'Email o contraseña incorrectos. Verifica tus credenciales e intenta nuevamente.'
   }
   
@@ -64,9 +65,40 @@ export function getFriendlyRegisterErrorMessage(error: string, code?: string): s
 
 export function parseErrorMessage(err: any, fallbackMessage: string): string {
   try {
-    const errorData = JSON.parse(err.message)
-    return errorData.error ? errorData.error : fallbackMessage
+    // Si err.message es un string JSON, parsearlo
+    if (typeof err.message === 'string') {
+      const errorData = JSON.parse(err.message)
+      // Retornar el error y el código si existe
+      if (errorData.error) {
+        return errorData.error
+      }
+      if (errorData.code) {
+        return errorData.code
+      }
+    }
+    // Si err es directamente un objeto con error
+    if (err.error) {
+      return err.error
+    }
+    return fallbackMessage
   } catch {
+    // Si no se puede parsear, intentar usar el mensaje directamente
+    if (err.message && typeof err.message === 'string') {
+      return err.message
+    }
     return fallbackMessage
   }
+}
+
+// Función para manejar errores de autenticación con toast
+export function handleAuthError(err: any, toast: any) {
+  const errorMessage = parseErrorMessage(err, 'Error de autenticación')
+  const friendlyMessage = getFriendlyErrorMessage(errorMessage)
+  toast.error(friendlyMessage)
+}
+
+// Función para manejar errores de documentos con toast
+export function handleDocumentError(err: any, toast: any, defaultMessage: string) {
+  const errorMessage = err instanceof Error ? err.message : defaultMessage
+  toast.error(errorMessage)
 }

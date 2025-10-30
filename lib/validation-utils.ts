@@ -30,11 +30,45 @@ export function validateIdCitizen(idCitizen: number | string): string | null {
 }
 
 export function validateLoginForm(email: string, password: string): string | null {
+  // Validar que el email no esté vacío
+  if (!email || !email.trim()) {
+    return 'El usuario es requerido'
+  }
+  
+  // Validar formato de email
   const emailError = validateEmail(email)
   if (emailError) return emailError
   
+  // Validar contraseña
+  if (!password || !password.trim()) {
+    return 'La contraseña es requerida'
+  }
+  
   const passwordError = validatePassword(password)
   if (passwordError) return passwordError
+  
+  return null
+}
+
+export function validateUserLocal(userLocal: string): string | null {
+  if (!userLocal || !userLocal.trim()) {
+    return 'El usuario es requerido'
+  }
+  
+  // Verificar que no contenga @
+  if (userLocal.includes('@')) {
+    return 'No incluyas @ en el usuario. Solo escribe tu nombre de usuario (ej: juan.perez)'
+  }
+  
+  // Verificar que no contenga espacios
+  if (userLocal.includes(' ')) {
+    return 'El usuario no puede contener espacios'
+  }
+  
+  // Verificar longitud mínima
+  if (userLocal.trim().length < 3) {
+    return 'El usuario debe tener al menos 3 caracteres'
+  }
   
   return null
 }
