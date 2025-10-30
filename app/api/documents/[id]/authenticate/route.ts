@@ -7,10 +7,10 @@ import {
   handleDocumentsError,
   createDocumentsSuccessResponse,
   createDocumentsErrorResponse,
-  extractDocumentsErrorInfo
+  extractDocumentsErrorInfo,
+  DOCUMENTS_BASE
 } from '@/lib/documents-utils'
-
-const DOCUMENTS_BASE = process.env.DOCUMENTS_BASE_URL
+import { DOCUMENTS_ENDPOINTS } from '@/lib/api-constants'
 
 export async function POST(
   req: NextRequest,
@@ -37,7 +37,7 @@ export async function POST(
     const accessToken = getAccessToken(cookieStore)
     
     const { response, data } = await makeDocumentsRequest(
-      `/documents/${documentId}/request-authentication`,
+      `${DOCUMENTS_ENDPOINTS.BASE}/${documentId}/request-authentication`,
       'POST',
       undefined,
       {
@@ -49,7 +49,7 @@ export async function POST(
       return createDocumentsSuccessResponse(data)
     }
 
-    const errorInfo = extractDocumentsErrorInfo(data, response, `/documents/${documentId}/request-authentication`)
+    const errorInfo = extractDocumentsErrorInfo(data, response, `${DOCUMENTS_ENDPOINTS.BASE}/${documentId}/request-authentication`)
     return createDocumentsErrorResponse(
       errorInfo.error,
       errorInfo.status,
@@ -60,6 +60,6 @@ export async function POST(
 
   } catch (error) {
     const resolvedParams = await params
-    return handleDocumentsError(error, `/documents/${resolvedParams.id}/request-authentication`)
+    return handleDocumentsError(error, `${DOCUMENTS_ENDPOINTS.BASE}/${resolvedParams.id}/request-authentication`)
   }
 }

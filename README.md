@@ -34,3 +34,67 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+
+## Estructura del Proyecto
+
+### Constantes de API (`lib/api-constants.ts`)
+
+Este archivo centraliza todos los endpoints y configuraciones de la aplicación:
+
+**Rutas de navegación:**
+```typescript
+import { APP_ROUTES } from '@/lib/api-constants'
+
+// Navegación
+router.push(APP_ROUTES.LOGIN)
+router.push(APP_ROUTES.DOCUMENTS.BASE)
+<Link href={APP_ROUTES.REGISTER}>Registrarse</Link>
+```
+
+**Endpoints internos (Next.js API Routes):**
+```typescript
+import { API_ROUTES } from '@/lib/api-constants'
+
+// Autenticación
+fetch(API_ROUTES.AUTH.LOGIN, { method: 'POST', ... })
+fetch(API_ROUTES.AUTH.ME)
+
+// Documentos
+fetch(API_ROUTES.DOCUMENTS.BASE)
+fetch(API_ROUTES.DOCUMENTS.BY_ID('123'))
+```
+
+**Configuración de cookies:**
+```typescript
+import { COOKIE_CONFIG } from '@/lib/api-constants'
+
+cookie.serialize(COOKIE_CONFIG.ACCESS_TOKEN.name, token, COOKIE_CONFIG.ACCESS_TOKEN)
+```
+
+**Configuración de la app:**
+```typescript
+import { APP_CONFIG } from '@/lib/api-constants'
+
+const secret = APP_CONFIG.JWT_SECRET
+const isProduction = APP_CONFIG.IS_PRODUCTION
+```
+
+### Variables de Entorno
+
+Crea un archivo `.env.local` con las siguientes variables:
+
+```env
+AUTH_BASE_URL=https://tu-api-auth.com
+DOCUMENTS_BASE_URL=https://tu-api-docs.com
+JWT_SECRET=tu-secreto-jwt
+NODE_ENV=development
+```
+
+### Ventajas de la Centralización
+
+- ✅ Cambios centralizados en un solo lugar
+- ✅ Autocompletado y type-safety con TypeScript
+- ✅ Evita errores de tipeo en URLs
+- ✅ Configuración de cookies consistente
+- ✅ Fácil mantenimiento y escalabilidad

@@ -1,4 +1,6 @@
-export const DOCUMENTS_BASE = process.env.DOCUMENTS_BASE_URL || ''
+import { DOCUMENTS_BASE_URL, buildDocumentsUrl as buildUrl, buildPaginationParams, API_ROUTES } from './api-constants'
+
+export const DOCUMENTS_BASE = DOCUMENTS_BASE_URL
 
 export interface DocumentsError {
   error: string
@@ -46,13 +48,7 @@ export interface DocumentsParams {
 }
 
 function buildDocumentsUrl(endpoint: string): string {
-  let url = `${DOCUMENTS_BASE}${endpoint}`
-  
-  if (DOCUMENTS_BASE.endsWith('/api/v1/') && endpoint.startsWith('/api/v1/')) {
-    url = `${DOCUMENTS_BASE}${endpoint.substring('/api/v1/'.length)}`
-  }
-  
-  return url
+  return buildUrl(endpoint)
 }
 
 function createErrorResponse(error: string, status: number = 500, code: string = 'UNKNOWN_ERROR', details?: string, url?: string): Response {
@@ -186,33 +182,33 @@ function extractDocumentFromResponse(result: any): Document {
 
 export async function getDocuments(fetchWithRefresh: (input: RequestInfo, init?: RequestInit) => Promise<Response>, params: DocumentsParams = {}): Promise<DocumentsListResponse> {
   const { page = 1, limit = 5 } = params
-  const queryParams = new URLSearchParams({ page: page.toString(), limit: limit.toString() })
+  const queryParams = buildPaginationParams(page, limit)
   
-  const response = await fetchWithRefresh(`/api/documents?${queryParams}`)
+  const response = await fetchWithRefresh(`${API_ROUTES.DOCUMENTS.BASE}?${queryParams}`)
   const result = await handleApiResponse(response, 'Error al obtener documentos')
   
   return extractDocumentsFromResponse(result, page, limit)
 }
 
 export async function getDocument(fetchWithRefresh: (input: RequestInfo, init?: RequestInit) => Promise<Response>, documentId: string): Promise<Document> {
-  const response = await fetchWithRefresh(`/api/documents/${documentId}`)
+  const response = await fetchWithRefresh(API_ROUTES.DOCUMENTS.BY_ID(documentId))
   const result = await handleApiResponse(response, 'Error al obtener documento')
   
   return extractDocumentFromResponse(result)
 }
 
 export async function deleteDocument(fetchWithRefresh: (input: RequestInfo, init?: RequestInit) => Promise<Response>, documentId: string): Promise<void> {
-  const response = await fetchWithRefresh(`/api/documents/${documentId}`, { method: 'DELETE' })
+  const response = await fetchWithRefresh(API_ROUTES.DOCUMENTS.BY_ID(documentId), { method: 'DELETE' })
   await handleApiResponse(response, 'Error al eliminar documento')
 }
 
 export async function deleteAllDocuments(fetchWithRefresh: (input: RequestInfo, init?: RequestInit) => Promise<Response>): Promise<void> {
-  const response = await fetchWithRefresh('/api/documents', { method: 'DELETE' })
+  const response = await fetchWithRefresh(API_ROUTES.DOCUMENTS.BASE, { method: 'DELETE' })
   await handleApiResponse(response, 'Error al eliminar todos los documentos')
 }
 
 export async function requestDocumentAuthentication(fetchWithRefresh: (input: RequestInfo, init?: RequestInit) => Promise<Response>, documentId: string): Promise<void> {
-  const response = await fetchWithRefresh(`/api/documents/${documentId}/authenticate`, { method: 'POST' })
+  const response = await fetchWithRefresh(API_ROUTES.DOCUMENTS.AUTHENTICATE(documentId), { method: 'POST' })
   await handleApiResponse(response, 'Error al solicitar autenticación del documento')
 }
 
@@ -220,7 +216,7 @@ export async function uploadDocument(fetchWithRefresh: (input: RequestInfo, init
   const formData = new FormData()
   formData.append('file', file)
   
-  const response = await fetchWithRefresh('/api/documents', { method: 'POST', body: formData })
+  const response = await fetchWithRefresh(API_ROUTES.DOCUMENTS.BASE, { method: 'POST', body: formData })
   const result = await handleApiResponse(response, 'Error al subir documento')
   
   return extractDocumentFromResponse(result)

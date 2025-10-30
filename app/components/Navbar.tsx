@@ -2,6 +2,7 @@
 import Link from 'next/link'
 import { useAuth } from '../providers/AuthProvider'
 import { useState } from 'react'
+import { APP_ROUTES } from '@/lib/api-constants'
 
 export default function Navbar() {
   const { user, loading, logout } = useAuth()
@@ -39,13 +40,13 @@ export default function Navbar() {
             {!user && !loading && (
               <>
                 <Link 
-                  href="/register" 
+                  href={APP_ROUTES.REGISTER} 
                   className="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200"
                 >
                   Registro
                 </Link>
                 <Link 
-                  href="/login" 
+                  href={APP_ROUTES.LOGIN} 
                   className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors duration-200 shadow-sm"
                 >
                   Iniciar Sesión
@@ -56,13 +57,13 @@ export default function Navbar() {
             {user && (
               <>
                 <Link 
-                  href="/me" 
+                  href={APP_ROUTES.ME} 
                   className="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200"
                 >
                   Mi Perfil
                 </Link>
                 <Link 
-                  href="/documents" 
+                  href={APP_ROUTES.DOCUMENTS.BASE} 
                   className="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200"
                 >
                   Documentos
@@ -121,14 +122,14 @@ export default function Navbar() {
               ) : user ? (
                 <>
                   <Link 
-                    href="/me" 
+                    href={APP_ROUTES.ME} 
                     className="text-gray-700 hover:text-blue-600 block px-3 py-2 rounded-md text-base font-medium"
                     onClick={() => setIsMenuOpen(false)}
                   >
                     Mi Perfil
                   </Link>
                   <Link 
-                    href="/documents" 
+                    href={APP_ROUTES.DOCUMENTS.BASE} 
                     className="text-gray-700 hover:text-blue-600 block px-3 py-2 rounded-md text-base font-medium"
                     onClick={() => setIsMenuOpen(false)}
                   >
@@ -161,14 +162,14 @@ export default function Navbar() {
               ) : (
                 <>
                   <Link 
-                    href="/register" 
+                    href={APP_ROUTES.REGISTER} 
                     className="text-gray-700 hover:text-blue-600 block px-3 py-2 rounded-md text-base font-medium"
                     onClick={() => setIsMenuOpen(false)}
                   >
                     Registro
                   </Link>
                   <Link 
-                    href="/login" 
+                    href={APP_ROUTES.LOGIN} 
                     className="bg-blue-600 text-white block px-3 py-2 rounded-lg text-base font-medium hover:bg-blue-700 transition-colors duration-200"
                     onClick={() => setIsMenuOpen(false)}
                   >

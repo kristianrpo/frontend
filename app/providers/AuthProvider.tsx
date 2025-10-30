@@ -1,5 +1,6 @@
 "use client"
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react'
+import { API_ROUTES } from '../../lib/api-constants'
 
 type User = Record<string, any> | null
 
@@ -49,7 +50,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
     let mounted = true
     async function init() {
       try {
-        const res = await fetch('/api/auth/me')
+        const res = await fetch(API_ROUTES.AUTH.ME)
         if (!res.ok) {
           setUser(null)
           return
@@ -78,7 +79,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
       refreshTimeout.current = window.setTimeout(async () => {
         const ok = await doRefresh()
         if (ok) {
-          const res = await fetch('/api/auth/me')
+          const res = await fetch(API_ROUTES.AUTH.ME)
           if (res.ok) {
             const data = await res.json()
             setUser(data.user || null)
@@ -102,7 +103,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
       refreshTimeout.current = window.setTimeout(async () => {
         const ok = await doRefresh()
         if (ok) {
-          const res = await fetch('/api/auth/me')
+          const res = await fetch(API_ROUTES.AUTH.ME)
           if (res.ok) {
             const data = await res.json()
             setUser(data.user || null)
@@ -128,7 +129,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
     if (timeout <= 0) {
       doRefresh().then(ok => {
         if (ok) {
-          fetch('/api/auth/me').then(res => {
+          fetch(API_ROUTES.AUTH.ME).then(res => {
             if (res.ok) {
               res.json().then(data => {
                 setUser(data.user || null)
@@ -157,7 +158,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
     refreshTimeout.current = window.setTimeout(async () => {
       const ok = await doRefresh()
       if (ok) {
-        const res = await fetch('/api/auth/me')
+        const res = await fetch(API_ROUTES.AUTH.ME)
         if (res.ok) {
           const data = await res.json()
           setUser(data.user || null)
@@ -188,7 +189,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
       isRefreshing.current = true
       lastRefreshTime.current = now
       
-      const res = await fetch('/api/auth/refresh', { method: 'POST' })
+      const res = await fetch(API_ROUTES.AUTH.REFRESH, { method: 'POST' })
       
       isRefreshing.current = false
       return res.ok
@@ -199,14 +200,14 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
   }
 
   async function login(email: string, password: string) {
-    const res = await fetch('/api/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password }) })
+    const res = await fetch(API_ROUTES.AUTH.LOGIN, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password }) })
     
     if (!res.ok) {
       const errorData = await res.json().catch(() => ({ error: 'Login failed' }))
       throw new Error(JSON.stringify(errorData))
     }
     
-    const me = await fetch('/api/auth/me')
+    const me = await fetch(API_ROUTES.AUTH.ME)
     
     if (me.ok) {
       const data = await me.json()
@@ -219,13 +220,13 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
   }
 
   async function logout() {
-    await fetch('/api/auth/logout', { method: 'POST' })
+    await fetch(API_ROUTES.AUTH.LOGOUT, { method: 'POST' })
     setUser(null)
     if (refreshTimeout.current) { clearTimeout(refreshTimeout.current); refreshTimeout.current = null }
   }
 
   async function register(payload: { email: string; password: string; name: string; id_citizen?: number }) {
-    const res = await fetch('/api/auth/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+    const res = await fetch(API_ROUTES.AUTH.REGISTER, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
     if (!res.ok) {
       const data = await res.json().catch(() => null)
       throw new Error(data?.error || 'Register failed')

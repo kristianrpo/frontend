@@ -1,6 +1,7 @@
 "use client"
 import Link from 'next/link'
 import { useAuth } from './providers/AuthProvider'
+import { APP_ROUTES } from '@/lib/api-constants'
 
 export default function HomePage() {
   const { user, loading } = useAuth()
@@ -28,13 +29,13 @@ export default function HomePage() {
               {!user ? (
                 <>
                   <Link 
-                    href="/register"
+                    href={APP_ROUTES.REGISTER}
                     className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-4 rounded-xl text-lg font-semibold hover:from-blue-700 hover:to-purple-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1"
                   >
                     Crear Cuenta
                   </Link>
                   <Link 
-                    href="/login"
+                    href={APP_ROUTES.LOGIN}
                     className="border-2 border-blue-600 text-blue-600 px-8 py-4 rounded-xl text-lg font-semibold hover:bg-blue-600 hover:text-white transition-all duration-300"
                   >
                     Iniciar Sesión
@@ -42,7 +43,7 @@ export default function HomePage() {
                 </>
               ) : (
                 <Link 
-                  href="/documents"
+                  href={APP_ROUTES.DOCUMENTS.BASE}
                   className="bg-gradient-to-r from-green-600 to-blue-600 text-white px-8 py-4 rounded-xl text-lg font-semibold hover:from-green-700 hover:to-blue-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1"
                 >
                   Ir a Mi Carpeta
@@ -204,13 +205,13 @@ export default function HomePage() {
           {!user ? (
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link 
-                href="/register"
+                href={APP_ROUTES.REGISTER}
                 className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-4 rounded-xl text-lg font-semibold hover:from-blue-700 hover:to-purple-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1"
               >
                 Comenzar Ahora
               </Link>
               <Link 
-                href="/login"
+                href={APP_ROUTES.LOGIN}
                 className="border-2 border-gray-300 text-gray-700 px-8 py-4 rounded-xl text-lg font-semibold hover:border-blue-600 hover:text-blue-600 transition-all duration-300"
               >
                 Ya tengo cuenta
@@ -218,7 +219,7 @@ export default function HomePage() {
             </div>
           ) : (
             <Link 
-              href="/documents"
+              href={APP_ROUTES.DOCUMENTS.BASE}
               className="inline-block bg-gradient-to-r from-green-600 to-blue-600 text-white px-8 py-4 rounded-xl text-lg font-semibold hover:from-green-700 hover:to-blue-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1"
             >
               Acceder a Mi Carpeta

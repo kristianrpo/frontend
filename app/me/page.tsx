@@ -1,6 +1,7 @@
 "use client"
 import { useAuth } from '../providers/AuthProvider'
 import { useRouter } from 'next/navigation'
+import { APP_ROUTES } from '@/lib/api-constants'
 import { useEffect } from 'react'
 
 export default function MePage() {
@@ -9,7 +10,7 @@ export default function MePage() {
 
   useEffect(() => {
     if (!loading && !user) {
-      router.push('/login')
+      router.push(APP_ROUTES.LOGIN)
     }
   }, [user, loading, router])
 
@@ -28,7 +29,7 @@ export default function MePage() {
   const handleLogout = async () => {
     try {
       await logout()
-      router.push('/login')
+      router.push(APP_ROUTES.LOGIN)
     } catch (error) {
       console.error('Error al cerrar sesión:', error)
     }
@@ -40,7 +41,7 @@ export default function MePage() {
         <h2 className="text-2xl font-semibold">Mi Perfil</h2>
         <div className="flex gap-2">
           <button 
-            onClick={() => router.push('/documents')}
+            onClick={() => router.push(APP_ROUTES.DOCUMENTS.BASE)}
             className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors duration-200"
           >
             Ver Documentos
@@ -103,7 +104,7 @@ export default function MePage() {
           <h3 className="text-lg font-semibold text-yellow-800 mb-4">Acciones Rápidas</h3>
           <div className="flex flex-wrap gap-3">
             <button 
-              onClick={() => router.push('/documents')}
+              onClick={() => router.push(APP_ROUTES.DOCUMENTS.BASE)}
               className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors duration-200"
             >
               Gestionar Documentos

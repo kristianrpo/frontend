@@ -2,6 +2,7 @@
 import { useAuth } from '../providers/AuthProvider'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
+import { APP_ROUTES } from '@/lib/api-constants'
 import { getDocuments, deleteDocument, deleteAllDocuments, uploadDocument, Document, DocumentsListResponse } from '../../lib/documents-utils'
 import ErrorBoundaryWithToast from '../components/ErrorBoundaryWithToast'
 import { useToast } from '../hooks/useToast'
@@ -24,7 +25,7 @@ function DocumentsPageContent() {
 
   useEffect(() => {
     if (!loading && !user) {
-      router.push('/login')
+      router.push(APP_ROUTES.LOGIN)
     }
   }, [user, loading, router])
 
@@ -435,7 +436,7 @@ function DocumentsPageContent() {
             <>
               <div className="space-y-4 mb-6 sm:mb-8">
                 {documents.map((doc) => (
-                  <div key={doc.id} className="card-container bg-gradient-to-r from-white to-gray-50 border border-gray-200 rounded-xl p-4 sm:p-6 hover:shadow-lg transition-all duration-200 group overflow-hidden cursor-pointer" onClick={() => router.push(`/documents/${doc.id}`)}>
+                  <div key={doc.id} className="card-container bg-gradient-to-r from-white to-gray-50 border border-gray-200 rounded-xl p-4 sm:p-6 hover:shadow-lg transition-all duration-200 group overflow-hidden cursor-pointer" onClick={() => router.push(APP_ROUTES.DOCUMENTS.BY_ID(doc.id))}>
                     {/* Header con título y botón */}
                     <div className="flex items-start justify-between gap-3 mb-4">
                       <div className="flex items-center gap-3 min-w-0 flex-1">

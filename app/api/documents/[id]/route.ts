@@ -9,6 +9,7 @@ import {
   makeDocumentsRequest,
   extractDocumentsErrorInfo
 } from '@/lib/documents-utils'
+import { DOCUMENTS_ENDPOINTS } from '@/lib/api-constants'
 
 export async function GET(
   req: Request,
@@ -35,7 +36,7 @@ export async function GET(
     const accessToken = getAccessToken(cookieStore)
     
     const { response, data } = await makeDocumentsRequest(
-      `/documents/${documentId}`,
+      `${DOCUMENTS_ENDPOINTS.BASE}/${documentId}`,
       'GET',
       undefined,
       {
@@ -48,7 +49,7 @@ export async function GET(
     }
     console.log(response)
 
-    const errorInfo = extractDocumentsErrorInfo(data, response, `/documents/${documentId}`)
+    const errorInfo = extractDocumentsErrorInfo(data, response, `${DOCUMENTS_ENDPOINTS.BASE}/${documentId}`)
     return createDocumentsErrorResponse(
       errorInfo.error,
       errorInfo.status,
@@ -59,7 +60,7 @@ export async function GET(
 
   } catch (error) {
     const resolvedParams = await params
-    return handleDocumentsError(error, `/documents/${resolvedParams.id}`)
+    return handleDocumentsError(error, `${DOCUMENTS_ENDPOINTS.BASE}/${resolvedParams.id}`)
   }
 }
 
@@ -88,7 +89,7 @@ export async function DELETE(
     const accessToken = getAccessToken(cookieStore)
     
     const { response, data } = await makeDocumentsRequest(
-      `/documents/${documentId}`,
+      `${DOCUMENTS_ENDPOINTS.BASE}/${documentId}`,
       'DELETE',
       undefined,
       {
@@ -100,7 +101,7 @@ export async function DELETE(
       return createDocumentsSuccessResponse(data)
     }
 
-    const errorInfo = extractDocumentsErrorInfo(data, response, `/documents/${documentId}`)
+    const errorInfo = extractDocumentsErrorInfo(data, response, `${DOCUMENTS_ENDPOINTS.BASE}/${documentId}`)
     return createDocumentsErrorResponse(
       errorInfo.error,
       errorInfo.status,
@@ -111,6 +112,6 @@ export async function DELETE(
 
   } catch (error) {
     const resolvedParams = await params
-    return handleDocumentsError(error, `/documents/${resolvedParams.id}`)
+    return handleDocumentsError(error, `${DOCUMENTS_ENDPOINTS.BASE}/${resolvedParams.id}`)
   }
 }

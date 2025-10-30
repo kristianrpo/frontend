@@ -11,6 +11,7 @@ import {
   extractDocumentsErrorInfo,
   DocumentsParams
 } from '@/lib/documents-utils'
+import { DOCUMENTS_ENDPOINTS } from '@/lib/api-constants'
 
 export async function GET(req: Request) {
   try {
@@ -47,7 +48,7 @@ export async function GET(req: Request) {
     }).toString()
 
     const { response, data } = await makeDocumentsRequest(
-      `/documents?${queryString}`,
+      `${DOCUMENTS_ENDPOINTS.BASE}?${queryString}`,
       'GET',
       undefined,
       {
@@ -59,7 +60,7 @@ export async function GET(req: Request) {
       return createDocumentsSuccessResponse(data)
     }
 
-    const errorInfo = extractDocumentsErrorInfo(data, response, `/documents`)
+    const errorInfo = extractDocumentsErrorInfo(data, response, DOCUMENTS_ENDPOINTS.BASE)
     return createDocumentsErrorResponse(
       errorInfo.error,
       errorInfo.status,
@@ -69,7 +70,7 @@ export async function GET(req: Request) {
     )
 
   } catch (error) {
-    return handleDocumentsError(error, '/documents')
+    return handleDocumentsError(error, DOCUMENTS_ENDPOINTS.BASE)
   }
 }
 
@@ -102,7 +103,7 @@ export async function POST(req: Request) {
     const microserviceFormData = new FormData()
     microserviceFormData.append('file', file)
     
-    const response = await fetch(`${DOCUMENTS_BASE}/documents`, {
+    const response = await fetch(`${DOCUMENTS_BASE}${DOCUMENTS_ENDPOINTS.BASE}`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${accessToken}`
@@ -123,7 +124,7 @@ export async function POST(req: Request) {
             response.status,
             'INVALID_RESPONSE',
             'El servidor devolvió contenido que no es JSON válido',
-            `${DOCUMENTS_BASE}/documents`
+            `${DOCUMENTS_BASE}${DOCUMENTS_ENDPOINTS.BASE}`
           )
         }
       } else {
@@ -132,7 +133,7 @@ export async function POST(req: Request) {
           response.status,
           'SERVICE_UNAVAILABLE',
           `El servidor devolvió: ${response.status} ${response.statusText}`,
-          `${DOCUMENTS_BASE}/documents`
+          `${DOCUMENTS_BASE}${DOCUMENTS_ENDPOINTS.BASE}`
         )
       }
     }
@@ -173,11 +174,11 @@ export async function POST(req: Request) {
       response.status,
       'UPLOAD_ERROR',
       errorData.details || `HTTP ${response.status}: ${response.statusText}`,
-      `${DOCUMENTS_BASE}/documents`
+      `${DOCUMENTS_BASE}${DOCUMENTS_ENDPOINTS.BASE}`
     )
 
   } catch (error) {
-    return handleDocumentsError(error, '/documents')
+    return handleDocumentsError(error, DOCUMENTS_ENDPOINTS.BASE)
   }
 }
 
@@ -199,7 +200,7 @@ export async function DELETE(req: Request) {
     const accessToken = getAccessToken(cookieStore)
     
     const { response, data } = await makeDocumentsRequest(
-      '/documents/user/delete-all',
+      `${DOCUMENTS_ENDPOINTS.BASE}/user/delete-all`,
       'DELETE',
       undefined,
       {
@@ -211,7 +212,7 @@ export async function DELETE(req: Request) {
       return createDocumentsSuccessResponse(data)
     }
 
-    const errorInfo = extractDocumentsErrorInfo(data, response, '/documents')
+    const errorInfo = extractDocumentsErrorInfo(data, response, DOCUMENTS_ENDPOINTS.BASE)
     return createDocumentsErrorResponse(
       errorInfo.error,
       errorInfo.status,
@@ -221,7 +222,7 @@ export async function DELETE(req: Request) {
     )
 
   } catch (error) {
-    return handleDocumentsError(error, '/documents')
+    return handleDocumentsError(error, DOCUMENTS_ENDPOINTS.BASE)
   }
 }
 

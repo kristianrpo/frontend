@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useAuth } from '../../providers/AuthProvider'
 import { getDocument, requestDocumentAuthentication, Document } from '../../../lib/documents-utils'
+import { APP_ROUTES } from '@/lib/api-constants'
 import ErrorBoundaryWithToast from '../../components/ErrorBoundaryWithToast'
 import { useToast } from '../../hooks/useToast'
 
@@ -129,7 +130,7 @@ function DocumentDetailPageContent() {
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
             <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1">
               <button
-                onClick={() => router.push('/documents')}
+                onClick={() => router.push(APP_ROUTES.DOCUMENTS.BASE)}
                 className="text-gray-500 hover:text-gray-700 transition-colors flex-shrink-0"
               >
                 <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">

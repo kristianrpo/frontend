@@ -5,23 +5,24 @@ import {
   extractErrorInfo, 
   handleAuthError 
 } from '@/lib/auth-utils'
+import { AUTH_ENDPOINTS, COOKIE_CONFIG } from '@/lib/api-constants'
 
 export async function POST(req: Request) {
   try {
     const header = req.headers.get('cookie') || ''
     const parsed = cookie.parse(header)
-    const refreshToken = parsed.refresh_token
+    const refreshToken = parsed[COOKIE_CONFIG.REFRESH_TOKEN.name]
 
     if (!refreshToken) {
       return createErrorResponse('No refresh token', 401, 'MISSING_REFRESH_TOKEN')
     }
 
-    const { response, data } = await makeAuthRequest('/refresh', 'POST', {
+    const { response, data } = await makeAuthRequest(AUTH_ENDPOINTS.REFRESH, 'POST', {
       refresh_token: refreshToken
     })
 
     if (!response.ok) {
-      const errorInfo = extractErrorInfo(data, response, '/refresh')
+      const errorInfo = extractErrorInfo(data, response, AUTH_ENDPOINTS.REFRESH)
       return createErrorResponse(
         errorInfo.error,
         errorInfo.status,
@@ -41,7 +42,7 @@ export async function POST(req: Request) {
     })
 
   } catch (err: any) {
-    return handleAuthError(err, '/refresh')
+    return handleAuthError(err, AUTH_ENDPOINTS.REFRESH)
   }
 }
 
@@ -52,26 +53,17 @@ function handleSuccessfulRefresh(data: any) {
   if (access_token) {
     const accessMaxAge = Number.isFinite(expires_in) && expires_in > 0 
       ? expires_in 
-      : 60 * 60 * 24 * 7
+      : COOKIE_CONFIG.ACCESS_TOKEN.maxAge
 
-    const serializedAccess = cookie.serialize('access_token', access_token, {
-      httpOnly: true,
-      path: '/',
+    const serializedAccess = cookie.serialize(COOKIE_CONFIG.ACCESS_TOKEN.name, access_token, {
+      ...COOKIE_CONFIG.ACCESS_TOKEN,
       maxAge: accessMaxAge,
-      sameSite: 'lax',
-      secure: process.env.NODE_ENV === 'production'
     })
     headers.append('Set-Cookie', serializedAccess)
   }
 
   if (refresh_token) {
-    const serializedRefresh = cookie.serialize('refresh_token', refresh_token, {
-      httpOnly: true,
-      path: '/',
-      maxAge: 60 * 60 * 24 * 30,
-      sameSite: 'lax',
-      secure: process.env.NODE_ENV === 'production'
-    })
+    const serializedRefresh = cookie.serialize(COOKIE_CONFIG.REFRESH_TOKEN.name, refresh_token, COOKIE_CONFIG.REFRESH_TOKEN)
     headers.append('Set-Cookie', serializedRefresh)
   }
 

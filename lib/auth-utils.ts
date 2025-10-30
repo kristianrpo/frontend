@@ -1,4 +1,6 @@
-export const AUTH_BASE = process.env.AUTH_BASE_URL || ''
+import { AUTH_BASE_URL, buildAuthUrl, AUTH_ENDPOINTS } from './api-constants'
+
+export const AUTH_BASE = AUTH_BASE_URL
 
 export interface AuthError {
   error: string
@@ -66,7 +68,7 @@ export function createSuccessResponse<T>(data: T, status: number = 200): Respons
 }
 
 export function handleAuthError(err: any, endpoint: string): Response {
-  const url = `${AUTH_BASE}${endpoint}`
+  const url = buildAuthUrl(endpoint)
   const { message, code, status } = err instanceof Error ? classifyError(err) : { message: 'Error de conexión con el microservicio de autenticación', code: 'NETWORK_ERROR', status: 500 }
   
   return buildErrorResponse(message, status, code, `Error al conectar con ${url}`, url)
@@ -87,7 +89,8 @@ export function validateLoginFields(body: any): string | null {
 
 export async function makeAuthRequest(endpoint: string, method: string = 'POST', body?: any, headers: Record<string, string> = {}): Promise<{ response: Response; data: any }> {
   try {
-    const response = await fetch(`${AUTH_BASE}${endpoint}`, {
+    const url = buildAuthUrl(endpoint)
+    const response = await fetch(url, {
       method,
       headers: { 'Content-Type': 'application/json', ...headers },
       body: body ? JSON.stringify(body) : undefined
@@ -106,6 +109,6 @@ export function extractErrorInfo(data: any, response: Response, endpoint: string
     code: data?.code || 'API_ERROR',
     details: data?.details || `HTTP ${response.status}: ${response.statusText}`,
     status: response.status,
-    url: `${AUTH_BASE}${endpoint}`
+    url: buildAuthUrl(endpoint)
   }
 }

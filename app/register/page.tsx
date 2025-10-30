@@ -2,6 +2,7 @@
 import React from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '../providers/AuthProvider'
+import { APP_ROUTES } from '@/lib/api-constants'
 import { getFriendlyRegisterErrorMessage, parseErrorMessage } from '../../lib/error-utils'
 import { validateRegisterForm } from '../../lib/validation-utils'
 import { AuthLayout, SubmitButton } from '../components/FormComponents'
@@ -134,7 +135,7 @@ function RegisterPageContent() {
       
       await register(payload)
       toast.success('Registro exitoso. Por favor inicia sesión')
-      router.push('/login')
+      router.push(APP_ROUTES.LOGIN)
     } catch (err: any) {
       // Solo mostrar en desarrollo
       if (process.env.NODE_ENV === 'development') {
@@ -163,7 +164,7 @@ function RegisterPageContent() {
       title="Crear Cuenta"
       subtitle="Únete a Carpeta Ciudadana"
       linkText="¿Ya tienes cuenta?"
-      linkHref="/login"
+      linkHref={APP_ROUTES.LOGIN}
       linkLabel="Inicia sesión aquí"
     >
       <form onSubmit={handleSubmit} className="space-y-6">
