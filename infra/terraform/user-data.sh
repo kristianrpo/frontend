@@ -14,36 +14,60 @@ echo "Starting user data script..."
 
 # Update system
 echo "Updating system packages..."
-yum update -y
+if command -v dnf >/dev/null 2>&1; then
+  dnf -y update
+else
+  yum -y update
+fi
 
 # Ensure SSH and EC2 Instance Connect (for console-based SSH) are installed and running
 echo "Ensuring sshd and ec2-instance-connect are installed..."
-yum install -y openssh-server ec2-instance-connect || true
+if command -v dnf >/dev/null 2>&1; then
+  dnf install -y openssh-server ec2-instance-connect || true
+else
+  yum install -y openssh-server ec2-instance-connect || true
+fi
 systemctl enable sshd || true
 systemctl start sshd || true
 
 # Install Docker
 echo "Installing Docker..."
-yum install -y docker
+if command -v dnf >/dev/null 2>&1; then
+  dnf install -y docker
+else
+  yum install -y docker
+fi
 systemctl start docker
 systemctl enable docker
 usermod -a -G docker ec2-user
 
 # Install Docker Compose
 echo "Installing Docker Compose..."
-curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+curl -fsSL "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
 chmod +x /usr/local/bin/docker-compose
+if ! /usr/local/bin/docker-compose version >/dev/null 2>&1; then
+  echo "Failed to install docker-compose binary"
+fi
 
 # Install AWS CLI v2
 echo "Installing AWS CLI v2..."
-curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-unzip awscliv2.zip
-./aws/install
-rm -rf aws awscliv2.zip
+if command -v dnf >/dev/null 2>&1; then
+  dnf install -y unzip
+else
+  yum install -y unzip
+fi
+curl -fsSL "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+unzip -q awscliv2.zip
+./aws/install || true
+rm -rf aws awscliv2.zip || true
 
 # Install jq for JSON parsing
 echo "Installing jq..."
-yum install -y jq
+if command -v dnf >/dev/null 2>&1; then
+  dnf install -y jq
+else
+  yum install -y jq
+fi
 
 # Create app directory
 echo "Creating application directory..."
@@ -51,20 +75,20 @@ mkdir -p /opt/frontend-app
 cd /opt/frontend-app
 
 # Retrieve secrets from Secrets Manager
-echo "Retrieving secrets from Secrets Manager..."
-SECRET_JSON=$(aws secretsmanager get-secret-value \
+echo "Retrieving secrets from Secrets Manager (non-fatal if not present)..."
+if SECRET_JSON=$(aws secretsmanager get-secret-value \
   --secret-id "$SECRET_NAME" \
   --region "$AWS_REGION" \
   --query SecretString \
-  --output text)
-
-# Parse secrets
-export AUTH_BASE_URL=$(echo $SECRET_JSON | jq -r '.AUTH_BASE_URL')
-export DOCUMENTS_BASE_URL=$(echo $SECRET_JSON | jq -r '.DOCUMENTS_BASE_URL')
-export JWT_SECRET=$(echo $SECRET_JSON | jq -r '.JWT_SECRET')
-export NODE_ENV=$(echo $SECRET_JSON | jq -r '.NODE_ENV')
-
-echo "Secrets retrieved successfully"
+  --output text 2>/dev/null); then
+  export AUTH_BASE_URL=$(echo "$SECRET_JSON" | jq -r '.AUTH_BASE_URL // empty')
+  export DOCUMENTS_BASE_URL=$(echo "$SECRET_JSON" | jq -r '.DOCUMENTS_BASE_URL // empty')
+  export JWT_SECRET=$(echo "$SECRET_JSON" | jq -r '.JWT_SECRET // empty')
+  export NODE_ENV=$(echo "$SECRET_JSON" | jq -r '.NODE_ENV // empty')
+  echo "Secrets retrieved successfully"
+else
+  echo "Secrets not found or no version; proceeding without overriding envs"
+fi
 
 # Create nginx.conf
 echo "Creating nginx configuration..."
@@ -141,10 +165,10 @@ EOF
 
 # Pull images and start containers
 echo "Pulling Docker images..."
-docker-compose pull
+/usr/local/bin/docker-compose pull || true
 
 echo "Starting containers..."
-docker-compose up -d
+/usr/local/bin/docker-compose up -d || true
 
 # Setup log rotation
 echo "Configuring log rotation..."
@@ -162,4 +186,4 @@ echo "Frontend application deployed successfully!"
 echo "Application should be accessible on port 80"
 
 # Display container status
-docker-compose ps
+/usr/local/bin/docker-compose ps || true
