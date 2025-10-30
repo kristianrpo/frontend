@@ -12,7 +12,6 @@ exec 2>&1
 
 echo "Starting user data script..."
 
-# Update system
 echo "Updating system packages..."
 if command -v dnf >/dev/null 2>&1; then
   dnf -y update
@@ -29,25 +28,6 @@ else
 fi
 systemctl enable sshd || true
 systemctl start sshd || true
-
-# Install Docker
-echo "Installing Docker..."
-if command -v dnf >/dev/null 2>&1; then
-  dnf install -y docker
-else
-  yum install -y docker
-fi
-systemctl start docker
-systemctl enable docker
-usermod -a -G docker ec2-user
-
-# Install Docker Compose
-echo "Installing Docker Compose..."
-curl -fsSL "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-chmod +x /usr/local/bin/docker-compose
-if ! /usr/local/bin/docker-compose version >/dev/null 2>&1; then
-  echo "Failed to install docker-compose binary"
-fi
 
 # Install AWS CLI v2
 echo "Installing AWS CLI v2..."
@@ -69,6 +49,25 @@ else
   yum install -y jq
 fi
 
+# Install Docker
+echo "Installing Docker..."
+if command -v dnf >/dev/null 2>&1; then
+  dnf install -y docker
+else
+  yum install -y docker
+fi
+systemctl start docker
+systemctl enable docker
+usermod -a -G docker ec2-user
+
+# Install Docker Compose
+echo "Installing Docker Compose..."
+curl -fsSL "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+chmod +x /usr/local/bin/docker-compose
+if ! /usr/local/bin/docker-compose version >/dev/null 2>&1; then
+  echo "Failed to install docker-compose binary"
+fi
+
 # Create app directory
 echo "Creating application directory..."
 mkdir -p /opt/frontend-app
@@ -85,6 +84,8 @@ if SECRET_JSON=$(aws secretsmanager get-secret-value \
   export DOCUMENTS_BASE_URL=$(echo "$SECRET_JSON" | jq -r '.DOCUMENTS_BASE_URL // empty')
   export JWT_SECRET=$(echo "$SECRET_JSON" | jq -r '.JWT_SECRET // empty')
   export NODE_ENV=$(echo "$SECRET_JSON" | jq -r '.NODE_ENV // empty')
+  export DOCKERHUB_PASSWORD=$(echo "$SECRET_JSON" | jq -r '.DOCKERHUB_PASSWORD // empty')
+  export DOCKERHUB_USERNAME_OVR=$(echo "$SECRET_JSON" | jq -r '.DOCKERHUB_USERNAME // empty')
   echo "Secrets retrieved successfully"
 else
   echo "Secrets not found or no version; proceeding without overriding envs"
@@ -126,8 +127,6 @@ EOF
 # Create docker-compose.yml
 echo "Creating docker-compose configuration..."
 cat > docker-compose.yml <<EOF
-version: '3.8'
-
 services:
   nginx:
     image: nginx:alpine
@@ -141,7 +140,7 @@ services:
     restart: unless-stopped
 
   app1:
-    image: $DOCKERHUB_USERNAME/frontend-app:latest
+    image: ${DOCKERHUB_USERNAME_OVR:-$DOCKERHUB_USERNAME}/frontend-app:latest
     environment:
       - AUTH_BASE_URL=$AUTH_BASE_URL
       - DOCUMENTS_BASE_URL=$DOCUMENTS_BASE_URL
@@ -152,7 +151,7 @@ services:
     restart: unless-stopped
 
   app2:
-    image: $DOCKERHUB_USERNAME/frontend-app:latest
+    image: ${DOCKERHUB_USERNAME_OVR:-$DOCKERHUB_USERNAME}/frontend-app:latest
     environment:
       - AUTH_BASE_URL=$AUTH_BASE_URL
       - DOCUMENTS_BASE_URL=$DOCUMENTS_BASE_URL
@@ -163,9 +162,42 @@ services:
     restart: unless-stopped
 EOF
 
-# Pull images and start containers
+# Configure Docker to prevent disk space issues
+echo "Configuring Docker to limit disk usage..."
+cat > /etc/docker/daemon.json <<EOF
+{
+  "log-driver": "json-file",
+  "log-opts": {
+    "max-size": "10m",
+    "max-file": "3"
+  },
+  "storage-driver": "overlay2",
+  "storage-opts": [
+    "overlay2.size=15G"
+  ]
+}
+EOF
+
+# Restart Docker to apply settings
+echo "Restarting Docker with new configuration..."
+systemctl restart docker || true
+
+# Clean up any existing Docker data before pulling
+echo "Cleaning up any existing Docker data..."
+docker system prune -af --volumes || true
+
+# Optional Docker Hub login if creds provided
+if [ -n "$DOCKERHUB_PASSWORD" ] && [ -n "${DOCKERHUB_USERNAME_OVR:-$DOCKERHUB_USERNAME}" ]; then
+  echo "Logging into Docker Hub..."
+  echo "$DOCKERHUB_PASSWORD" | docker login -u "${DOCKERHUB_USERNAME_OVR:-$DOCKERHUB_USERNAME}" --password-stdin || true
+fi
+
 echo "Pulling Docker images..."
 /usr/local/bin/docker-compose pull || true
+
+# Clean up after pulling to save space
+echo "Cleaning up unused Docker images and layers..."
+docker image prune -af || true
 
 echo "Starting containers..."
 /usr/local/bin/docker-compose up -d || true

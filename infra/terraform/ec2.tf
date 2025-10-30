@@ -23,6 +23,12 @@ resource "aws_instance" "frontend" {
   key_name                    = aws_key_pair.ec2_key.key_name
   associate_public_ip_address = true
 
+  root_block_device {
+    volume_size = 30
+    volume_type = "gp3"
+    encrypted   = true
+  }
+
   user_data = templatefile("${path.module}/user-data.sh", {
     aws_region         = var.aws_region
     secret_name        = aws_secretsmanager_secret.app_secrets.name
