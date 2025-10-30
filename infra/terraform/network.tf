@@ -8,7 +8,7 @@ resource "aws_internet_gateway" "main" {
   }
 }
 
-# Obtener la route table principal de la VPC
+# Gestionar la default route table de la VPC y asegurar ruta a IGW (evita blackhole)
 data "aws_route_table" "main" {
   vpc_id = data.aws_vpc.default.id
   filter {
@@ -17,19 +17,16 @@ data "aws_route_table" "main" {
   }
 }
 
-# Verificar si la ruta ya existe
-locals {
-  has_internet_route = length([
-    for route in data.aws_route_table.main.routes :
-    route if route.cidr_block == "0.0.0.0/0"
-  ]) > 0
-}
+resource "aws_default_route_table" "main" {
+  default_route_table_id = data.aws_route_table.main.id
 
-# Agregar ruta a Internet Gateway solo si no existe
-resource "aws_route" "internet_access" {
-  count = local.has_internet_route ? 0 : 1
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internet_gateway.main.id
+  }
 
-  route_table_id         = data.aws_route_table.main.id
-  destination_cidr_block = "0.0.0.0/0"
-  gateway_id             = aws_internet_gateway.main.id
+  tags = {
+    Name      = "${var.app_name}-main-rt"
+    ManagedBy = "terraform"
+  }
 }

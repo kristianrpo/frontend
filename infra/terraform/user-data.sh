@@ -16,6 +16,12 @@ echo "Starting user data script..."
 echo "Updating system packages..."
 yum update -y
 
+# Ensure SSH and EC2 Instance Connect (for console-based SSH) are installed and running
+echo "Ensuring sshd and ec2-instance-connect are installed..."
+yum install -y openssh-server ec2-instance-connect || true
+systemctl enable sshd || true
+systemctl start sshd || true
+
 # Install Docker
 echo "Installing Docker..."
 yum install -y docker
