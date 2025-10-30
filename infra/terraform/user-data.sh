@@ -127,10 +127,10 @@ EOF
 # Create docker-compose.yml
 echo "Creating docker-compose configuration..."
 # Determine which username to use
-if [ -n "$$DOCKERHUB_USERNAME_OVR" ]; then
-  ACTUAL_USERNAME="$$DOCKERHUB_USERNAME_OVR"
+if [ -n "$DOCKERHUB_USERNAME_OVR" ]; then
+  ACTUAL_USERNAME="$DOCKERHUB_USERNAME_OVR"
 else
-  ACTUAL_USERNAME="${dockerhub_username}"
+  ACTUAL_USERNAME="$DOCKERHUB_USERNAME"
 fi
 cat > docker-compose.yml <<EOF
 services:
@@ -146,23 +146,23 @@ services:
     restart: unless-stopped
 
   app1:
-    image: $$ACTUAL_USERNAME/frontend-app:latest
+    image: \$ACTUAL_USERNAME/frontend-app:latest
     environment:
-      - AUTH_BASE_URL=$$AUTH_BASE_URL
-      - DOCUMENTS_BASE_URL=$$DOCUMENTS_BASE_URL
-      - JWT_SECRET=$$JWT_SECRET
-      - NODE_ENV=$$NODE_ENV
+      - AUTH_BASE_URL=\$AUTH_BASE_URL
+      - DOCUMENTS_BASE_URL=\$DOCUMENTS_BASE_URL
+      - JWT_SECRET=\$JWT_SECRET
+      - NODE_ENV=\$NODE_ENV
     expose:
       - "3000"
     restart: unless-stopped
 
   app2:
-    image: $$ACTUAL_USERNAME/frontend-app:latest
+    image: \$ACTUAL_USERNAME/frontend-app:latest
     environment:
-      - AUTH_BASE_URL=$$AUTH_BASE_URL
-      - DOCUMENTS_BASE_URL=$$DOCUMENTS_BASE_URL
-      - JWT_SECRET=$$JWT_SECRET
-      - NODE_ENV=$$NODE_ENV
+      - AUTH_BASE_URL=\$AUTH_BASE_URL
+      - DOCUMENTS_BASE_URL=\$DOCUMENTS_BASE_URL
+      - JWT_SECRET=\$JWT_SECRET
+      - NODE_ENV=\$NODE_ENV
     expose:
       - "3000"
     restart: unless-stopped
@@ -177,10 +177,7 @@ cat > /etc/docker/daemon.json <<EOF
     "max-size": "10m",
     "max-file": "3"
   },
-  "storage-driver": "overlay2",
-  "storage-opts": [
-    "overlay2.size=15G"
-  ]
+  "storage-driver": "overlay2"
 }
 EOF
 
@@ -193,9 +190,9 @@ echo "Cleaning up any existing Docker data..."
 docker system prune -af --volumes || true
 
 # Optional Docker Hub login if creds provided
-if [ -n "$$DOCKERHUB_PASSWORD" ] && [ -n "$ACTUAL_USERNAME" ]; then
+if [ -n "$DOCKERHUB_PASSWORD" ] && [ -n "$ACTUAL_USERNAME" ]; then
   echo "Logging into Docker Hub..."
-  echo "$$DOCKERHUB_PASSWORD" | docker login -u "$ACTUAL_USERNAME" --password-stdin || true
+  echo "$DOCKERHUB_PASSWORD" | docker login -u "$ACTUAL_USERNAME" --password-stdin || true
 fi
 
 echo "Pulling Docker images..."
