@@ -15,10 +15,12 @@ data "aws_ami" "amazon_linux_2023" {
 }
 
 resource "aws_instance" "frontend" {
-  ami                    = data.aws_ami.amazon_linux_2023.id
-  instance_type          = var.instance_type
-  iam_instance_profile   = aws_iam_instance_profile.ec2_profile.name
-  vpc_security_group_ids = [aws_security_group.frontend_ec2.id]
+  ami                         = data.aws_ami.amazon_linux_2023.id
+  instance_type               = var.instance_type
+  iam_instance_profile        = aws_iam_instance_profile.ec2_profile.name
+  vpc_security_group_ids      = [aws_security_group.frontend_ec2.id]
+  key_name                    = aws_key_pair.ec2_key.key_name
+  associate_public_ip_address = true
 
   user_data = templatefile("${path.module}/user-data.sh", {
     aws_region         = var.aws_region

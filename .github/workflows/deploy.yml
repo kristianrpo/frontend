@@ -123,7 +123,34 @@ jobs:
           terraform apply -auto-approve -input=false \
             -var="dockerhub_username=${{ secrets.DOCKERHUB_USERNAME }}"
 
-      - name: Display Application URL
+      - name: Display Application URL and Debug Info
         working-directory: infra/terraform
         run: |
-          echo "Application URL: http://$(terraform output -raw instance_public_ip)"
+          INSTANCE_ID=$(terraform output -raw instance_id)
+          PUBLIC_IP=$(terraform output -raw instance_public_ip)
+          SSH_KEY_SECRET=$(terraform output -raw ssh_key_secret_name)
+          
+          echo "=== Deployment Complete ==="
+          echo "Instance ID: $INSTANCE_ID"
+          echo "Application URL: http://$PUBLIC_IP"
+          echo ""
+          echo "=== SSH Access ==="
+          echo "To connect via SSH, run:"
+          echo "  aws secretsmanager get-secret-value --secret-id $SSH_KEY_SECRET --query SecretString --output text > /tmp/ec2-key.pem"
+          echo "  chmod 400 /tmp/ec2-key.pem"
+          echo "  ssh -i /tmp/ec2-key.pem ec2-user@$PUBLIC_IP"
+          echo ""
+          echo "=== Instance Status ==="
+          aws ec2 describe-instance-status --instance-ids $INSTANCE_ID --query 'InstanceStatuses[0].[InstanceState.Name,SystemStatus.Status,InstanceStatus.Status]' --output text || echo "Instance still initializing..."
+          echo ""
+          echo "=== Useful Commands ==="
+          echo "Check deployment logs:"
+          echo "  sudo tail -f /var/log/user-data.log"
+          echo ""
+          echo "Check Docker containers:"
+          echo "  sudo docker-compose -f /opt/frontend-app/docker-compose.yml ps"
+          echo ""
+          echo "View application logs:"
+          echo "  sudo docker-compose -f /opt/frontend-app/docker-compose.yml logs -f"
+          echo ""
+          echo "Note: The application may take 2-3 minutes to fully start after instance launch."
