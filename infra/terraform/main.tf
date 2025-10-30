@@ -25,3 +25,10 @@ data "aws_subnets" "default" {
     values = [data.aws_vpc.default.id]
   }
 }
+
+# Get the default subnet in the first AZ (usually has internet access)
+data "aws_subnet" "default_az1" {
+  vpc_id            = data.aws_vpc.default.id
+  availability_zone = "${var.aws_region}a"
+  default_for_az    = true
+}

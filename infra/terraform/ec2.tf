@@ -19,6 +19,7 @@ resource "aws_instance" "frontend" {
   instance_type               = var.instance_type
   iam_instance_profile        = aws_iam_instance_profile.ec2_profile.name
   vpc_security_group_ids      = [aws_security_group.frontend_ec2.id]
+  subnet_id                   = data.aws_subnet.default_az1.id
   key_name                    = aws_key_pair.ec2_key.key_name
   associate_public_ip_address = true
 
