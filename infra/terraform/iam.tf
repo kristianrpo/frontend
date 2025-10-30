@@ -20,6 +20,12 @@ resource "aws_iam_role" "ec2_role" {
   }
 }
 
+# Attach AWS managed policy for SSM
+resource "aws_iam_role_policy_attachment" "ssm_policy" {
+  role       = aws_iam_role.ec2_role.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+}
+
 # Policy to access Secrets Manager
 resource "aws_iam_role_policy" "secrets_access" {
   name = "secrets-manager-access"
