@@ -1,0 +1,37 @@
+# Get latest Amazon Linux 2023 AMI
+data "aws_ami" "amazon_linux_2023" {
+  most_recent = true
+  owners      = ["amazon"]
+
+  filter {
+    name   = "name"
+    values = ["al2023-ami-*-x86_64"]
+  }
+
+  filter {
+    name   = "virtualization-type"
+    values = ["hvm"]
+  }
+}
+
+resource "aws_instance" "frontend" {
+  ami                    = data.aws_ami.amazon_linux_2023.id
+  instance_type          = var.instance_type
+  iam_instance_profile   = aws_iam_instance_profile.ec2_profile.name
+  vpc_security_group_ids = [aws_security_group.frontend_ec2.id]
+
+  user_data = templatefile("${path.module}/user-data.sh", {
+    aws_region         = var.aws_region
+    secret_name        = aws_secretsmanager_secret.app_secrets.name
+    dockerhub_username = var.dockerhub_username
+  })
+
+  tags = {
+    Name        = var.app_name
+    Environment = "development"
+    ManagedBy   = "terraform"
+  }
+
+  # Force replacement when user data changes
+  user_data_replace_on_change = true
+}
