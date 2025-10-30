@@ -126,6 +126,8 @@ EOF
 
 # Create docker-compose.yml
 echo "Creating docker-compose configuration..."
+# Determine which username to use
+ACTUAL_USERNAME="${DOCKERHUB_USERNAME_OVR:-$DOCKERHUB_USERNAME}"
 cat > docker-compose.yml <<EOF
 services:
   nginx:
@@ -140,23 +142,23 @@ services:
     restart: unless-stopped
 
   app1:
-    image: ${DOCKERHUB_USERNAME_OVR:-$DOCKERHUB_USERNAME}/frontend-app:latest
+    image: $ACTUAL_USERNAME/frontend-app:latest
     environment:
-      - AUTH_BASE_URL=$AUTH_BASE_URL
-      - DOCUMENTS_BASE_URL=$DOCUMENTS_BASE_URL
-      - JWT_SECRET=$JWT_SECRET
-      - NODE_ENV=$NODE_ENV
+      - AUTH_BASE_URL=$$AUTH_BASE_URL
+      - DOCUMENTS_BASE_URL=$$DOCUMENTS_BASE_URL
+      - JWT_SECRET=$$JWT_SECRET
+      - NODE_ENV=$$NODE_ENV
     expose:
       - "3000"
     restart: unless-stopped
 
   app2:
-    image: ${DOCKERHUB_USERNAME_OVR:-$DOCKERHUB_USERNAME}/frontend-app:latest
+    image: $ACTUAL_USERNAME/frontend-app:latest
     environment:
-      - AUTH_BASE_URL=$AUTH_BASE_URL
-      - DOCUMENTS_BASE_URL=$DOCUMENTS_BASE_URL
-      - JWT_SECRET=$JWT_SECRET
-      - NODE_ENV=$NODE_ENV
+      - AUTH_BASE_URL=$$AUTH_BASE_URL
+      - DOCUMENTS_BASE_URL=$$DOCUMENTS_BASE_URL
+      - JWT_SECRET=$$JWT_SECRET
+      - NODE_ENV=$$NODE_ENV
     expose:
       - "3000"
     restart: unless-stopped
