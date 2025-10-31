@@ -117,6 +117,12 @@ jobs:
         working-directory: infra/terraform
         run: terraform validate
 
+      - name: Force EC2 Instance Replacement
+        working-directory: infra/terraform
+        run: |
+          # Add a timestamp comment to user-data.sh to force recreation
+          echo "# Last updated: $(date +%s)" >> user-data.sh
+          
       - name: Terraform Apply
         working-directory: infra/terraform
         run: |
