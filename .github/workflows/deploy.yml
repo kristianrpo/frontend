@@ -87,8 +87,8 @@ jobs:
           aws secretsmanager put-secret-value \
             --secret-id frontend-app-secrets \
             --secret-string "$(jq -n \
-              --arg auth_url "${API_GATEWAY_URL}/auth" \
-              --arg docs_url "${API_GATEWAY_URL}/docs" \
+              --arg auth_url "${API_GATEWAY_URL}/api/auth" \
+              --arg docs_url "${API_GATEWAY_URL}/api/docs" \
               --arg jwt "${{ secrets.JWT_SECRET }}" \
               --arg env "${{ secrets.NODE_ENV }}" \
               --arg docker_user "${{ secrets.DOCKERHUB_USERNAME }}" \
