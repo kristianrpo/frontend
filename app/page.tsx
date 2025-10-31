@@ -238,7 +238,7 @@ export default function HomePage() {
             </div>
             <h3 className="text-2xl font-bold mb-4">Carpeta Ciudadana</h3>
             <p className="text-gray-400 mb-6">
-              Tu espacio digital seguro para la gestión de documentos oficiales
+              Tu espacio digital seguro para la gestión de documentos oficiales nivel Colombia
             </p>
             <div className="border-t border-gray-800 pt-6">
               <p className="text-gray-500 text-sm">
