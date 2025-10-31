@@ -137,7 +137,7 @@ export const COOKIE_CONFIG = {
     httpOnly: true,
     path: '/',
     sameSite: 'lax' as const,
-    secure: process.env.NODE_ENV === 'production',
+    secure: false, // HTTP deployment
   },
   REFRESH_TOKEN: {
     name: 'refresh_token',
@@ -145,7 +145,7 @@ export const COOKIE_CONFIG = {
     httpOnly: true,
     path: '/',
     sameSite: 'lax' as const,
-    secure: process.env.NODE_ENV === 'production',
+    secure: false, // HTTP deployment
   },
 } as const
 
