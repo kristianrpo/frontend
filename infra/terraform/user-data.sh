@@ -73,6 +73,79 @@ echo "Creating application directory..."
 mkdir -p /opt/frontend-app
 cd /opt/frontend-app
 
+# Create rolling update script
+echo "Creating rolling update script..."
+cat > /opt/frontend-app/rolling-update.sh <<'EOFROLLING'
+#!/bin/bash
+
+# Script para hacer rolling update de los contenedores
+# Actualiza app1, luego app2, manteniendo la aplicación disponible
+
+set -e
+
+cd /opt/frontend-app
+
+echo "=========================================="
+echo "Starting rolling update..."
+echo "=========================================="
+
+# Pull latest images
+echo "Pulling latest Docker images..."
+docker-compose pull
+
+# Update app1 first
+echo ""
+echo "=========================================="
+echo "Step 1: Updating app1..."
+echo "=========================================="
+docker-compose up -d --no-deps app1
+
+# Wait for app1 to be healthy
+echo "Waiting for app1 to be ready..."
+sleep 10
+
+# Check if app1 is running
+if docker-compose ps app1 | grep -q "Up"; then
+  echo "✓ app1 is running"
+else
+  echo "✗ app1 failed to start"
+  exit 1
+fi
+
+# Update app2
+echo ""
+echo "=========================================="
+echo "Step 2: Updating app2..."
+echo "=========================================="
+docker-compose up -d --no-deps app2
+
+# Wait for app2 to be healthy
+echo "Waiting for app2 to be ready..."
+sleep 10
+
+# Check if app2 is running
+if docker-compose ps app2 | grep -q "Up"; then
+  echo "✓ app2 is running"
+else
+  echo "✗ app2 failed to start"
+  exit 1
+fi
+
+# Clean up old images
+echo ""
+echo "=========================================="
+echo "Cleaning up old images..."
+echo "=========================================="
+docker image prune -af || true
+
+echo ""
+echo "=========================================="
+echo "Rolling update completed successfully!"
+echo "=========================================="
+docker-compose ps
+EOFROLLING
+chmod +x /opt/frontend-app/rolling-update.sh
+
 # Retrieve secrets from Secrets Manager
 echo "Retrieving secrets from Secrets Manager (non-fatal if not present)..."
 if SECRET_JSON=$(aws secretsmanager get-secret-value \

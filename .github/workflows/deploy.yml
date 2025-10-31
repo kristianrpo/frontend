@@ -117,17 +117,70 @@ jobs:
         working-directory: infra/terraform
         run: terraform validate
 
-      - name: Force EC2 Instance Replacement
-        working-directory: infra/terraform
-        run: |
-          # Add a timestamp comment to user-data.sh to force recreation
-          echo "# Last updated: $(date +%s)" >> user-data.sh
-          
       - name: Terraform Apply
         working-directory: infra/terraform
         run: |
           terraform apply -auto-approve -input=false \
             -var="dockerhub_username=${{ secrets.DOCKERHUB_USERNAME }}"
+
+      - name: Perform Rolling Update
+        working-directory: infra/terraform
+        run: |
+          INSTANCE_ID=$(terraform output -raw instance_id)
+          PUBLIC_IP=$(terraform output -raw instance_public_ip)
+          SSH_KEY_SECRET=$(terraform output -raw ssh_key_secret_name)
+          
+          echo "=== Performing Rolling Update ==="
+          echo "Instance ID: $INSTANCE_ID"
+          echo "Public IP: $PUBLIC_IP"
+          
+          # Wait for instance to be ready (max 5 minutes)
+          echo "Waiting for instance to be ready..."
+          for i in {1..60}; do
+            INSTANCE_STATE=$(aws ec2 describe-instance-status --instance-ids $INSTANCE_ID \
+              --query 'InstanceStatuses[0].InstanceState.Name' --output text 2>/dev/null || echo "pending")
+            
+            if [ "$INSTANCE_STATE" = "running" ]; then
+              echo "Instance is running"
+              break
+            fi
+            
+            echo "Waiting for instance... ($i/60)"
+            sleep 5
+          done
+          
+          # Wait for SSH to be available (max 3 minutes)
+          echo "Waiting for SSH to be available..."
+          for i in {1..36}; do
+            if timeout 5 bash -c "echo > /dev/tcp/$PUBLIC_IP/22" 2>/dev/null; then
+              echo "SSH is available"
+              break
+            fi
+            echo "Waiting for SSH... ($i/36)"
+            sleep 5
+          done
+          
+          # Download SSH key
+          KEY_FILE=$(mktemp)
+          aws secretsmanager get-secret-value \
+            --secret-id $SSH_KEY_SECRET \
+            --query SecretString \
+            --output text > $KEY_FILE
+          chmod 400 $KEY_FILE
+          
+          # Execute rolling update (or wait for initial deployment)
+          ssh -i $KEY_FILE -o StrictHostKeyChecking=no -o ConnectTimeout=10 \
+            -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR ec2-user@$PUBLIC_IP \
+            'if [ -f /opt/frontend-app/rolling-update.sh ]; then /opt/frontend-app/rolling-update.sh; else echo "Waiting for initial deployment..."; sleep 30; fi' || {
+            echo "Checking container status..."
+            ssh -i $KEY_FILE -o StrictHostKeyChecking=no ec2-user@$PUBLIC_IP \
+              'cd /opt/frontend-app && docker-compose ps' || true
+            rm -f $KEY_FILE
+            echo "Note: Rolling update may have failed if instance is still initializing"
+          }
+          
+          rm -f $KEY_FILE
+          echo "✓ Rolling update attempt completed"
 
       - name: Display Application URL and Debug Info
         working-directory: infra/terraform

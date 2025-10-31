@@ -14,6 +14,22 @@ data "aws_ami" "amazon_linux_2023" {
   }
 }
 
+# Elastic IP for persistent IP address
+resource "aws_eip" "frontend" {
+  domain = "vpc"
+  
+  tags = {
+    Name        = "${var.app_name}-eip"
+    Environment = "development"
+    ManagedBy   = "terraform"
+  }
+}
+
+resource "aws_eip_association" "frontend" {
+  instance_id   = aws_instance.frontend.id
+  allocation_id = aws_eip.frontend.id
+}
+
 resource "aws_instance" "frontend" {
   ami                         = data.aws_ami.amazon_linux_2023.id
   instance_type               = var.instance_type

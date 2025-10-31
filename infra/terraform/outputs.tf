@@ -4,8 +4,8 @@ output "instance_id" {
 }
 
 output "instance_public_ip" {
-  description = "Public IP of the EC2 instance"
-  value       = aws_instance.frontend.public_ip
+  description = "Public IP of the EC2 instance (Elastic IP)"
+  value       = aws_eip.frontend.public_ip
 }
 
 output "instance_public_dns" {
@@ -15,7 +15,12 @@ output "instance_public_dns" {
 
 output "application_url" {
   description = "URL to access the application"
-  value       = "http://${aws_instance.frontend.public_ip}"
+  value       = "http://${aws_eip.frontend.public_ip}"
+}
+
+output "elastic_ip" {
+  description = "Elastic IP address (persistent)"
+  value       = aws_eip.frontend.public_ip
 }
 
 output "secrets_manager_secret_arn" {
@@ -35,5 +40,5 @@ output "ssh_key_secret_name" {
 
 output "ssh_command" {
   description = "Command to SSH into the instance"
-  value       = "aws secretsmanager get-secret-value --secret-id ${aws_secretsmanager_secret.ec2_private_key.name} --query SecretString --output text > /tmp/ec2-key.pem && chmod 400 /tmp/ec2-key.pem && ssh -i /tmp/ec2-key.pem ec2-user@${aws_instance.frontend.public_ip}"
+  value       = "aws secretsmanager get-secret-value --secret-id ${aws_secretsmanager_secret.ec2_private_key.name} --query SecretString --output text > /tmp/ec2-key.pem && chmod 400 /tmp/ec2-key.pem && ssh -i /tmp/ec2-key.pem ec2-user@${aws_eip.frontend.public_ip}"
 }
